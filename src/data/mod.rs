@@ -29,7 +29,6 @@ pub struct Pro {
 
 impl Pro {
     fn new(player_name: String, team: Team, summoner_name: String, account_id_str: String) -> Pro {
-        
         let mut account_id = None;
         if !account_id_str.is_empty() {
             account_id = Some(account_id_str);
@@ -41,6 +40,16 @@ impl Pro {
             summoner_name,
             account_id,
         }
+    }
+}
+
+impl std::fmt::Display for Pro {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} - {}",
+            self.team.short_name, self.player_name, self.summoner_name
+        )
     }
 }
 
@@ -68,6 +77,7 @@ pub fn get_pros() -> Result<HashMap<String, Pro>> {
     Ok(pros)
 }
 
+// TODO: implement this
 pub fn update_pros() -> Result<()> {
     Ok(())
 }
