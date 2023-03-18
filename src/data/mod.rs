@@ -28,12 +28,13 @@ pub struct Pro {
 }
 
 impl Pro {
-    pub fn new(
-        player_name: String,
-        team: Team,
-        summoner_name: String,
-        account_id: Option<AccountID>,
-    ) -> Pro {
+    fn new(player_name: String, team: Team, summoner_name: String, account_id_str: String) -> Pro {
+        
+        let mut account_id = None;
+        if !account_id_str.is_empty() {
+            account_id = Some(account_id_str);
+        }
+
         Pro {
             player_name,
             team,
@@ -56,14 +57,8 @@ pub fn get_pros() -> Result<HashMap<String, Pro>> {
         let team_short_name: String = record[1].to_string();
         let team_full_name: String = record[2].to_string();
         let summoner_name: String = record[3].to_string();
+        let account_id: String = record[4].to_string();
 
-        let account_id: Option<AccountID>;
-        if record[4].is_empty() {
-            account_id = None;
-        } else {
-            account_id = Some(record[4].to_string());
-        }
-        
         let team = Team::new(team_short_name, team_full_name);
         let pro = Pro::new(player_name, team, summoner_name.clone(), account_id);
 
