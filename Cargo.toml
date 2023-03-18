@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+csv = "1.2.1"
 riven = "2.13.0"
 tokio = { version = "1.26", features = ["rt-multi-thread"] }
