@@ -50,6 +50,14 @@ impl ProData {
         })
     }
 
+    pub fn get_pros(&self) -> Vec<SummonerName> {
+        let mut result = Vec::new();
+        for (key, _) in &self.pros {
+            result.push(key.clone());
+        }
+        result
+    }
+
     pub async fn get_game<'a>(&'a mut self, pro_summoner_name: &str) -> Result<Option<&'a Game>> {
         let riot_api = RiotApi::new(API_KEY);
 
@@ -166,6 +174,9 @@ async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
     Ok(summoner.id)
 }
 
+// TODO: implement sync_summoner_names()
+
+// FIXME: rename this function to sync_summoner_ids()
 pub async fn sync_data() -> Result<()> {
     let old_file = File::open(PRO_FILE)?;
     let mut reader = ReaderBuilder::new()
@@ -241,7 +252,7 @@ impl Team {
 }
 
 #[derive(Debug)]
-pub struct Game {
+pub struct Game { // TODO: implement Display
     game_info: CurrentGameInfo,
     pro_players: Vec<SummonerName>,
 }
