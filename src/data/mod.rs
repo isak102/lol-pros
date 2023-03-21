@@ -1,16 +1,16 @@
-use csv::ReaderBuilder;
+use csv::{ReaderBuilder, WriterBuilder};
 use riven::consts::PlatformRoute;
 use std::fs::File;
-use std::io::{Error, ErrorKind};
-use std::vec;
+use std::io::{BufRead, BufReader, Error, ErrorKind};
 use std::{collections::HashMap, io::Result};
 
 use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
 const PRO_FILE: &str = "/home/isak102/.local/share/pros.csv";
+const API_KEY: &str = "RGAPI-ff208cbe-ae4d-4983-9ec4-8b291da869a5";
 
-pub type AccountID = String;
+pub type SummonerID = String;
 pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
@@ -36,10 +36,10 @@ impl ProData {
             let team_short_name: TeamShort = record[1].to_string();
             let team_full_name: TeamFull = record[2].to_string();
             let summoner_name: SummonerName = record[3].to_string();
-            let account_id: AccountID = record[4].to_string();
+            let summoner_id: SummonerID = record[4].to_string();
 
             let team = Team::new(team_short_name, team_full_name);
-            let pro = Pro::new(player_name, team, summoner_name.clone(), account_id);
+            let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
 
             pros.insert(summoner_name, pro);
         }
@@ -51,7 +51,7 @@ impl ProData {
     }
 
     pub async fn get_game<'a>(&'a mut self, pro_summoner_name: &str) -> Result<Option<&'a Game>> {
-        let riot_api = RiotApi::new("RGAPI-56173203-f7b4-4382-85e1-6b2869c1c4f5"); // TODO: make Config struct, should include ProMap ??
+        let riot_api = RiotApi::new(API_KEY);
 
         let pro = match self.pros.get_mut(pro_summoner_name) {
             Some(pro) => pro,
@@ -64,14 +64,14 @@ impl ProData {
             }
         };
 
-        let account_id: &AccountID = match &pro.account_id {
+        let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
             None => {
                 return Err(Error::new(
                     // TODO: make custom error
                     ErrorKind::Other,
                     format!(
-                        "{} {} has no account ID",
+                        "{} {} has no summoner ID",
                         pro.team.short_name, pro.player_name
                     ),
                 ));
@@ -80,14 +80,15 @@ impl ProData {
 
         let game_info = match riot_api
             .spectator_v4()
-            .get_current_game_info_by_summoner(PlatformRoute::EUW1, account_id)
+            .get_current_game_info_by_summoner(PlatformRoute::EUW1, summoner_id)
             .await
         {
             Ok(game) => match game {
                 Some(game) => game,
                 None => return Ok(None),
             },
-            Err(_) => {
+            Err(e) => {
+                eprint!("{}", e);
                 return Err(Error::new(
                     // TODO: make custom error
                     ErrorKind::Other,
@@ -133,6 +134,97 @@ impl ProData {
     }
 }
 
+fn get_api_key() -> String {
+    /* TODO: fix better error handling */
+    let file = File::open("/home/isak102/.local/share/RGAPI.txt")
+        .expect("This file is hardcoded and should exist");
+    let mut reader = BufReader::new(file);
+    let mut api_key = String::new();
+
+    reader
+        .read_line(&mut api_key)
+        .expect("This file needs to have the API key on line 1");
+
+    api_key
+}
+
+async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
+    let riot_api = RiotApi::new(API_KEY);
+
+    let summoner = match riot_api
+        .summoner_v4()
+        .get_by_summoner_name(PlatformRoute::EUW1, summoner_name)
+        .await
+    {
+        Ok(s) => match s {
+            Some(summoner) => summoner,
+            None => return Err(Error::new(ErrorKind::Other, "Summoner not found")),
+        },
+        Err(_) => return Err(Error::new(ErrorKind::Other, "Error getting summoner info")),
+    };
+
+    Ok(summoner.id)
+}
+
+pub async fn sync_data() -> Result<()> {
+    let old_file = File::open(PRO_FILE)?;
+    let mut reader = ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(old_file);
+
+    let new_file_name = "/home/isak102/temptest";
+    let new_file = File::create(new_file_name)?; // TODO: generate temp file
+    let mut writer = WriterBuilder::new()
+        .has_headers(false)
+        .from_writer(new_file);
+
+    for (i, row) in reader.records().enumerate() {
+        let record = row?;
+
+        let player_name: String = record[0].to_string();
+        let team_short_name: TeamShort = record[1].to_string();
+        let team_full_name: TeamFull = record[2].to_string();
+        let summoner_name: SummonerName = record[3].to_string();
+        let summoner_id: SummonerID = record[4].to_string();
+
+        // TODO: improve this logic below
+        if i == 0 {
+            writer.write_record(&[
+                player_name,
+                team_short_name,
+                team_full_name,
+                summoner_name,
+                summoner_id,
+            ])?;
+            continue;
+        }
+
+        // TODO: update summoner name if summoner id exists
+        if summoner_id.is_empty() {
+            let new_summoner_id = get_summoner_id(&summoner_name).await?;
+            writer.write_record(&[
+                player_name,
+                team_short_name,
+                team_full_name,
+                summoner_name.clone(), // TODO: fix
+                new_summoner_id,
+            ])?;
+        } else {
+            writer.write_record(&[
+                player_name,
+                team_short_name,
+                team_full_name,
+                summoner_name,
+                summoner_id,
+            ])?;
+        }
+    }
+
+    std::fs::rename(new_file_name, PRO_FILE).expect("Updating data file failed while copying");
+
+    Ok(())
+}
+
 #[derive(Debug)]
 pub struct Team {
     pub short_name: String,
@@ -159,22 +251,22 @@ pub struct Pro {
     pub player_name: String,
     pub team: Team,
     pub summoner_name: String,
-    account_id: Option<String>,
+    summoner_id: Option<String>,
     game_found: bool,
 }
 
 impl Pro {
-    fn new(player_name: String, team: Team, summoner_name: String, account_id_str: String) -> Pro {
-        let mut account_id = None;
-        if !account_id_str.is_empty() {
-            account_id = Some(account_id_str);
+    fn new(player_name: String, team: Team, summoner_name: String, summoner_id_str: String) -> Pro {
+        let mut summoner_id = None;
+        if !summoner_id_str.is_empty() {
+            summoner_id = Some(summoner_id_str);
         }
 
         Pro {
             player_name,
             team,
             summoner_name,
-            account_id,
+            summoner_id,
             game_found: false,
         }
     }
