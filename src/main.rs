@@ -1,14 +1,13 @@
 mod data;
+use data::*;
 
 #[tokio::main]
 async fn main() {
-    let pros = data::get_pros();
-    match pros {
-        Err(e) => println!("Error getting pros: {}", e),
-        Ok(result) => {
-            for val in result.values() {
-                println!("{}", val);
-            }
-        }
-    }
+    
+    let mut pro_data = ProData::new().unwrap();
+
+    let game = pro_data.get_game("Emtest").await;
+
+    println!("{:?}", game);
+    println!("{:?}", pro_data);
 }
