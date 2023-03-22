@@ -1,19 +1,77 @@
 use csv::{ReaderBuilder, WriterBuilder};
 use riven::consts::PlatformRoute;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Error, ErrorKind};
+use std::io::{Error, ErrorKind};
 use std::{collections::HashMap, io::Result};
 
 use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
 const PRO_FILE: &str = "/home/isak102/.local/share/pros.csv";
-const API_KEY: &str = "RGAPI-ff208cbe-ae4d-4983-9ec4-8b291da869a5";
+const API_KEY: &str = std::env!("RGAPI_KEY");
 
 pub type SummonerID = String;
 pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
+
+#[derive(Debug)]
+pub struct Pro {
+    pub player_name: String,
+    pub team: Team,
+    pub summoner_name: String,
+    summoner_id: Option<String>,
+    game_found: bool,
+}
+
+impl Pro {
+    fn new(player_name: String, team: Team, summoner_name: String, summoner_id_str: String) -> Pro {
+        let mut summoner_id = None;
+        if !summoner_id_str.is_empty() {
+            summoner_id = Some(summoner_id_str);
+        }
+
+        Pro {
+            player_name,
+            team,
+            summoner_name,
+            summoner_id,
+            game_found: false,
+        }
+    }
+}
+
+impl std::fmt::Display for Pro {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} - {}",
+            self.team.short_name, self.player_name, self.summoner_name
+        )
+    }
+}
+
+
+#[derive(Debug)]
+pub struct Team {
+    pub short_name: String,
+    pub full_name: String,
+}
+
+impl Team {
+    pub fn new(short_name: String, full_name: String) -> Team {
+        Team {
+            short_name,
+            full_name,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Game { // TODO: implement Display
+    game_info: CurrentGameInfo,
+    pro_players: Vec<SummonerName>,
+}
 
 #[derive(Debug)]
 pub struct ProData {
@@ -142,20 +200,6 @@ impl ProData {
     }
 }
 
-fn get_api_key() -> String {
-    /* TODO: fix better error handling */
-    let file = File::open("/home/isak102/.local/share/RGAPI.txt")
-        .expect("This file is hardcoded and should exist");
-    let mut reader = BufReader::new(file);
-    let mut api_key = String::new();
-
-    reader
-        .read_line(&mut api_key)
-        .expect("This file needs to have the API key on line 1");
-
-    api_key
-}
-
 async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
     let riot_api = RiotApi::new(API_KEY);
 
@@ -183,7 +227,7 @@ pub async fn sync_data() -> Result<()> {
         .has_headers(false)
         .from_reader(old_file);
 
-    let new_file_name = "/home/isak102/temptest";
+    let new_file_name = "/home/isak102/.cache/lolmsi043905-923j39";
     let new_file = File::create(new_file_name)?; // TODO: generate temp file
     let mut writer = WriterBuilder::new()
         .has_headers(false)
@@ -236,59 +280,3 @@ pub async fn sync_data() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-pub struct Team {
-    pub short_name: String,
-    pub full_name: String,
-}
-
-impl Team {
-    pub fn new(short_name: String, full_name: String) -> Team {
-        Team {
-            short_name,
-            full_name,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Game { // TODO: implement Display
-    game_info: CurrentGameInfo,
-    pro_players: Vec<SummonerName>,
-}
-
-#[derive(Debug)]
-pub struct Pro {
-    pub player_name: String,
-    pub team: Team,
-    pub summoner_name: String,
-    summoner_id: Option<String>,
-    game_found: bool,
-}
-
-impl Pro {
-    fn new(player_name: String, team: Team, summoner_name: String, summoner_id_str: String) -> Pro {
-        let mut summoner_id = None;
-        if !summoner_id_str.is_empty() {
-            summoner_id = Some(summoner_id_str);
-        }
-
-        Pro {
-            player_name,
-            team,
-            summoner_name,
-            summoner_id,
-            game_found: false,
-        }
-    }
-}
-
-impl std::fmt::Display for Pro {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} - {}",
-            self.team.short_name, self.player_name, self.summoner_name
-        )
-    }
-}

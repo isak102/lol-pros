@@ -1,13 +1,22 @@
 mod data;
+
+use std::process::*;
 use data::*;
 
 #[tokio::main]
 async fn main() {
 
-    sync_data().await;
+    eprintln!("sync_data(): {:?}", sync_data().await);
     
-    let mut pro_data = ProData::new().unwrap();
+    let mut pro_data: ProData = match ProData::new() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{}", e);
+            exit(1);
+        }
+    };
 
+    eprintln!("Getting pros...");
     let pros = pro_data.get_pros();
 
     for pro in pros {
