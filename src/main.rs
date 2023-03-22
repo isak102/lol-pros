@@ -21,7 +21,9 @@ async fn main() {
     eprintln!("Pros: {:?}", pros);
 
     for pro in pros {
-        eprintln!("Game: {:?}", pro_data.get_game(&pro.1).await);
+        eprintln!("Game: {:?}", pro_data.get_game(&pro).await);
     }
+    
+    eprintln!("pro_data: {:?}", pro_data);
     
 }

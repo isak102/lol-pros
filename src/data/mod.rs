@@ -16,13 +16,32 @@ pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
 
-#[derive(Debug)]
-struct Pro {
+#[derive(Debug, Clone)]
+pub struct Pro {
     player_name: String,
     team: Team,
     summoner_name: String,
     summoner_id: Option<String>,
-    game_found: bool,
+}
+
+#[derive(Debug, Clone)]
+struct Team {
+    short_name: String,
+    full_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProGame {
+    // TODO: implement Display
+    game_info: CurrentGameInfo,
+    pro_players: Vec<Pro>,
+}
+
+#[derive(Debug)]
+pub struct ProData {
+    pros: HashMap<SummonerName, Pro>,
+    games: Vec<ProGame>,
+    pros_in_game: HashMap<SummonerName, Pro>,
 }
 
 impl Pro {
@@ -37,7 +56,6 @@ impl Pro {
             team,
             summoner_name,
             summoner_id,
-            game_found: false,
         }
     }
 }
@@ -46,16 +64,10 @@ impl std::fmt::Display for Pro {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "{} {} - {}",
-            self.team.short_name, self.player_name, self.summoner_name
+            "{} {}",
+            self.team.short_name, self.player_name
         )
     }
-}
-
-#[derive(Debug)]
-struct Team {
-    short_name: String,
-    full_name: String,
 }
 
 impl Team {
@@ -65,20 +77,6 @@ impl Team {
             full_name,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct Game {
-    // TODO: implement Display
-    game_info: CurrentGameInfo,
-    pro_players: Vec<SummonerName>,
-}
-
-#[derive(Debug)]
-pub struct ProData {
-    pros: HashMap<SummonerName, Pro>,
-    games: Vec<Game>, // TODO: store each game with a tuple of a vector of summoner names and
-                      // games
 }
 
 impl ProData {
@@ -106,33 +104,29 @@ impl ProData {
         Ok(ProData {
             pros: pros,
             games: Vec::new(),
+            pros_in_game: HashMap::new(),
         })
     }
 
-    // TODO: make this return vector of references to pros
-    pub fn get_pros(&self) -> Vec<(TeamShort, PlayerName, SummonerName)> {
+    pub fn get_pros(&self) -> Vec<Pro> {
         let mut result = Vec::new();
         for (_, val) in &self.pros {
-            result.push((
-                val.team.short_name.clone(),
-                val.player_name.clone(),
-                val.summoner_name.clone(),
-            ));
+            result.push(val.clone());
         }
         result
     }
 
     // TODO: make this take reference to Pro
-    pub async fn get_game<'a>(&'a mut self, pro_summoner_name: &str) -> Result<Option<&'a Game>> {
+    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<&ProGame>> {
         let riot_api = RiotApi::new(API_KEY);
 
-        let pro = match self.pros.get_mut(pro_summoner_name) {
+        let pro = match self.pros.get_mut(&pro.summoner_name) {
             Some(pro) => pro,
             None => {
                 return Err(Error::new(
                     // TODO: make custom error
                     ErrorKind::Other,
-                    format!("{} doesn't exist in ProData", pro_summoner_name),
+                    format!("{} doesn't exist in ProData", &pro.summoner_name),
                 ));
             }
         };
@@ -173,30 +167,30 @@ impl ProData {
             }
         };
 
-        pro.game_found = true;
+        let participants: Vec<CurrentGameParticipant> = game_info.participants.clone();
 
-        let pro_players = self.find_pros_in_game(&game_info.participants);
-
-        let game = Game {
+        let game = ProGame {
             game_info,
-            pro_players: pro_players,
+            pro_players: self.find_pros_in_game(participants),
         };
+
         self.games.push(game);
 
-        Ok(Some(&self.games.last().expect(
+        Ok(Some(self.games.last().expect(
             "We just pushed game so this should be Some(Game)",
         )))
     }
 
-    fn find_pros_in_game(&mut self, summoners: &Vec<CurrentGameParticipant>) -> Vec<SummonerName> {
-        let mut pros_in_this_game: Vec<SummonerName> = Vec::new();
+    fn find_pros_in_game(&mut self, summoners: Vec<CurrentGameParticipant>) -> Vec<Pro> {
+        let mut pros_in_this_game: Vec<Pro> = Vec::new();
         for summoner in summoners {
             let summoner_name = &summoner.summoner_name;
 
-            match self.pros.get_mut(summoner_name) {
+            match self.pros.get(summoner_name) {
                 Some(pro) => {
-                    pro.game_found = true;
-                    pros_in_this_game.push(summoner_name.clone());
+                    pros_in_this_game.push(pro.clone());
+                    self.pros_in_game
+                        .insert(pro.summoner_name.clone(), pro.clone());
                 }
 
                 None => {}
