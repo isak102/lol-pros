@@ -10,6 +10,7 @@ use riven::RiotApi;
 const PRO_FILE: &str = "/home/isak102/.local/share/pros.csv";
 const API_KEY: &str = std::env!("RGAPI_KEY");
 
+pub type PlayerName = String;
 pub type SummonerID = String;
 pub type SummonerName = String;
 pub type TeamShort = String;
@@ -90,7 +91,7 @@ impl ProData {
         for result in reader.records() {
             let record = result?;
 
-            let player_name: String = record[0].to_string();
+            let player_name: PlayerName = record[0].to_string();
             let team_short_name: TeamShort = record[1].to_string();
             let team_full_name: TeamFull = record[2].to_string();
             let summoner_name: SummonerName = record[3].to_string();
@@ -108,10 +109,10 @@ impl ProData {
         })
     }
 
-    pub fn get_pros(&self) -> Vec<SummonerName> {
+    pub fn get_pros(&self) -> Vec<(TeamShort, PlayerName, SummonerName)> {
         let mut result = Vec::new();
-        for (key, _) in &self.pros {
-            result.push(key.clone());
+        for (_, val) in &self.pros {
+            result.push((val.team.short_name.clone(), val.player_name.clone(), val.summoner_name.clone()));
         }
         result
     }

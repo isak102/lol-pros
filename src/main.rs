@@ -18,9 +18,10 @@ async fn main() {
 
     eprintln!("Getting pros...");
     let pros = pro_data.get_pros();
+    eprintln!("Pros: {:?}", pros);
 
     for pro in pros {
-        eprintln!("{:?}", pro_data.get_game(&pro).await);
+        eprintln!("Game: {:?}", pro_data.get_game(&pro.1).await);
     }
     
 }
