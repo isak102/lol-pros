@@ -17,10 +17,10 @@ pub type TeamShort = String;
 pub type TeamFull = String;
 
 #[derive(Debug)]
-pub struct Pro {
-    pub player_name: String,
-    pub team: Team,
-    pub summoner_name: String,
+struct Pro {
+    player_name: String,
+    team: Team,
+    summoner_name: String,
     summoner_id: Option<String>,
     game_found: bool,
 }
@@ -52,15 +52,14 @@ impl std::fmt::Display for Pro {
     }
 }
 
-
 #[derive(Debug)]
-pub struct Team {
-    pub short_name: String,
-    pub full_name: String,
+struct Team {
+    short_name: String,
+    full_name: String,
 }
 
 impl Team {
-    pub fn new(short_name: String, full_name: String) -> Team {
+    fn new(short_name: String, full_name: String) -> Team {
         Team {
             short_name,
             full_name,
@@ -69,7 +68,8 @@ impl Team {
 }
 
 #[derive(Debug)]
-pub struct Game { // TODO: implement Display
+pub struct Game {
+    // TODO: implement Display
     game_info: CurrentGameInfo,
     pro_players: Vec<SummonerName>,
 }
@@ -109,14 +109,20 @@ impl ProData {
         })
     }
 
+    // TODO: make this return vector of references to pros
     pub fn get_pros(&self) -> Vec<(TeamShort, PlayerName, SummonerName)> {
         let mut result = Vec::new();
         for (_, val) in &self.pros {
-            result.push((val.team.short_name.clone(), val.player_name.clone(), val.summoner_name.clone()));
+            result.push((
+                val.team.short_name.clone(),
+                val.player_name.clone(),
+                val.summoner_name.clone(),
+            ));
         }
         result
     }
 
+    // TODO: make this take reference to Pro
     pub async fn get_game<'a>(&'a mut self, pro_summoner_name: &str) -> Result<Option<&'a Game>> {
         let riot_api = RiotApi::new(API_KEY);
 
@@ -280,4 +286,3 @@ pub async fn sync_data() -> Result<()> {
 
     Ok(())
 }
-
