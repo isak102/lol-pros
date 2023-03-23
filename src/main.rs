@@ -20,8 +20,8 @@ async fn main() {
     let pros = pro_data.get_pros();
     eprintln!("Pros: {:?}", pros);
 
-    for pro in pros {
-        eprintln!("Game: {:?}", pro_data.get_game(&pro).await);
+    for pro_ptr in pros {
+        eprintln!("Game: {:?}", pro_data.get_game(pro_ptr).await);
     }
     
     eprintln!("pro_data: {:?}", pro_data);

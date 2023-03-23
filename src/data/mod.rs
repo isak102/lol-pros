@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::{collections::HashMap, io::Result};
 
+use std::cell::{Ref, RefCell};
+use std::rc::Rc;
+
 use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
@@ -34,14 +37,14 @@ struct Team {
 pub struct ProGame {
     // TODO: implement Display
     game_info: CurrentGameInfo,
-    pro_players: Vec<Pro>,
+    pro_players: Vec<Rc<RefCell<Pro>>>,
 }
 
 #[derive(Debug)]
 pub struct ProData {
-    pros: HashMap<SummonerName, Pro>,
-    games: Vec<ProGame>,
-    pros_in_game: HashMap<SummonerName, Pro>,
+    pros: HashMap<SummonerName, Rc<RefCell<Pro>>>,
+    games: Vec<Rc<ProGame>>,
+    pros_in_game: HashMap<SummonerName, Rc<ProGame>>,
 }
 
 impl Pro {
@@ -62,11 +65,7 @@ impl Pro {
 
 impl std::fmt::Display for Pro {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {}",
-            self.team.short_name, self.player_name
-        )
+        write!(f, "{} {}", self.team.short_name, self.player_name)
     }
 }
 
@@ -98,7 +97,7 @@ impl ProData {
             let team = Team::new(team_short_name, team_full_name);
             let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
 
-            pros.insert(summoner_name, pro);
+            pros.insert(summoner_name, Rc::new(RefCell::new(pro)));
         }
 
         Ok(ProData {
@@ -108,28 +107,21 @@ impl ProData {
         })
     }
 
-    pub fn get_pros(&self) -> Vec<Pro> {
+    pub fn get_pros(&self) -> Vec<Rc<RefCell<Pro>>> {
         let mut result = Vec::new();
         for (_, val) in &self.pros {
-            result.push(val.clone());
+            result.push(Rc::clone(&val));
         }
         result
     }
 
-    // TODO: make this take reference to Pro
-    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<&ProGame>> {
+    pub async fn get_game<'a, 'b>(
+        &'a mut self,
+        pro: Rc<RefCell<Pro>>,
+    ) -> Result<Option<&'a ProGame>> {
         let riot_api = RiotApi::new(API_KEY);
 
-        let pro = match self.pros.get_mut(&pro.summoner_name) {
-            Some(pro) => pro,
-            None => {
-                return Err(Error::new(
-                    // TODO: make custom error
-                    ErrorKind::Other,
-                    format!("{} doesn't exist in ProData", &pro.summoner_name),
-                ));
-            }
-        };
+        let pro = pro.borrow();
 
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
@@ -167,6 +159,7 @@ impl ProData {
             }
         };
 
+        // TODO: find way to remove this line
         let participants: Vec<CurrentGameParticipant> = game_info.participants.clone();
 
         let game = ProGame {
@@ -174,23 +167,29 @@ impl ProData {
             pro_players: self.find_pros_in_game(participants),
         };
 
-        self.games.push(game);
+        let game_rc = Rc::new(game);
+        let game_clone = Rc::clone(&game_rc);
+        self.games.push(game_rc);
+
+        self.pros_in_game
+            .insert(pro.summoner_name.clone(), game_clone); // TODO: remove .clone()
 
         Ok(Some(self.games.last().expect(
             "We just pushed game so this should be Some(Game)",
         )))
     }
 
-    fn find_pros_in_game(&mut self, summoners: Vec<CurrentGameParticipant>) -> Vec<Pro> {
-        let mut pros_in_this_game: Vec<Pro> = Vec::new();
+    fn find_pros_in_game(
+        &mut self,
+        summoners: Vec<CurrentGameParticipant>,
+    ) -> Vec<Rc<RefCell<Pro>>> {
+        let mut pros_in_this_game: Vec<Rc<RefCell<Pro>>> = Vec::new();
         for summoner in summoners {
             let summoner_name = &summoner.summoner_name;
 
             match self.pros.get(summoner_name) {
                 Some(pro) => {
-                    pros_in_this_game.push(pro.clone());
-                    self.pros_in_game
-                        .insert(pro.summoner_name.clone(), pro.clone());
+                    pros_in_this_game.push(Rc::clone(pro));
                 }
 
                 None => {}
