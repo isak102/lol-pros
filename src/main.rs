@@ -3,10 +3,7 @@ use data::*;
 
 #[tokio::main]
 async fn main() {
-    eprintln!(
-        "sync_data(): {:?}",
-        sync_data::sync_data::sync_summoner_ids().await
-    );
+    sync_data::sync_data::sync_summoner_ids().await.unwrap();
 
     let mut pro_data: ProData = match ProData::new() {
         Ok(v) => v,
@@ -18,13 +15,19 @@ async fn main() {
 
     eprintln!("Getting pros...");
     let pros = &pro_data.get_pros();
-    eprintln!("Pros: {:?}", pros);
 
     for pro in pros {
-        eprintln!("Game: {:?}", pro_data.get_game(pro).await);
+        let game = match pro_data.get_game(pro).await.unwrap() {
+            Some(g) => g,
+            None => {
+                println!("...");
+                continue;
+            }
+        };
+        println!("{}\n...", game);
     }
 
-    eprintln!(
+    println!(
         "\nFound {} game(s) with {} pro(s) in total",
         pro_data.games_count(),
         pro_data.pros_in_game_count()
