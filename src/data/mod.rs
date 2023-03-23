@@ -4,7 +4,6 @@ use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::{collections::HashMap, io::Result};
 
-use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use riven::models::spectator_v4::*;
@@ -37,12 +36,12 @@ struct Team {
 pub struct ProGame {
     // TODO: implement Display
     game_info: CurrentGameInfo,
-    pro_players: Vec<Rc<RefCell<Pro>>>,
+    pro_players: Vec<Rc<Pro>>,
 }
 
 #[derive(Debug)]
 pub struct ProData {
-    pros: HashMap<SummonerName, Rc<RefCell<Pro>>>,
+    pros: HashMap<SummonerName, Rc<Pro>>,
     games: Vec<Rc<ProGame>>,
     pros_in_game: HashMap<SummonerName, Rc<ProGame>>,
 }
@@ -97,7 +96,7 @@ impl ProData {
             let team = Team::new(team_short_name, team_full_name);
             let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
 
-            pros.insert(summoner_name, Rc::new(RefCell::new(pro)));
+            pros.insert(summoner_name, Rc::new(pro));
         }
 
         Ok(ProData {
@@ -107,7 +106,7 @@ impl ProData {
         })
     }
 
-    pub fn get_pros(&self) -> Vec<Rc<RefCell<Pro>>> {
+    pub fn get_pros(&self) -> Vec<Rc<Pro>> {
         let mut result = Vec::new();
         for (_, val) in &self.pros {
             result.push(Rc::clone(&val));
@@ -115,13 +114,8 @@ impl ProData {
         result
     }
 
-    pub async fn get_game<'a, 'b>(
-        &'a mut self,
-        pro: Rc<RefCell<Pro>>,
-    ) -> Result<Option<&'a ProGame>> {
+    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<&ProGame>> {
         let riot_api = RiotApi::new(API_KEY);
-
-        let pro = pro.borrow();
 
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
@@ -174,16 +168,16 @@ impl ProData {
         self.pros_in_game
             .insert(pro.summoner_name.clone(), game_clone); // TODO: remove .clone()
 
-        Ok(Some(self.games.last().expect(
-            "We just pushed game so this should be Some(Game)",
-        )))
+        Ok(Some(
+            self.games
+                .last()
+                .expect("We just pushed game so this should be Some(Game)")
+                .as_ref(),
+        ))
     }
 
-    fn find_pros_in_game(
-        &mut self,
-        summoners: Vec<CurrentGameParticipant>,
-    ) -> Vec<Rc<RefCell<Pro>>> {
-        let mut pros_in_this_game: Vec<Rc<RefCell<Pro>>> = Vec::new();
+    fn find_pros_in_game(&mut self, summoners: Vec<CurrentGameParticipant>) -> Vec<Rc<Pro>> {
+        let mut pros_in_this_game: Vec<Rc<Pro>> = Vec::new();
         for summoner in summoners {
             let summoner_name = &summoner.summoner_name;
 
