@@ -106,6 +106,7 @@ impl ProData {
         })
     }
 
+    // TODO: find way to return Vec<&Pro>
     pub fn get_pros(&self) -> Vec<Rc<Pro>> {
         let mut result = Vec::new();
         for (_, val) in &self.pros {
@@ -114,7 +115,7 @@ impl ProData {
         result
     }
 
-    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<&ProGame>> {
+    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<Rc<ProGame>>> {
         let riot_api = RiotApi::new(API_KEY);
 
         let summoner_id: &SummonerID = match &pro.summoner_id {
@@ -130,6 +131,11 @@ impl ProData {
                 ));
             }
         };
+
+        /* If this pro already is in a found game then we return that game instantly */
+        if let Some(game) = self.pros_in_game.get(&pro.summoner_name) {
+            return Ok(Some(Rc::clone(&game)));
+        }
 
         let game_info = match riot_api
             .spectator_v4()
@@ -161,22 +167,20 @@ impl ProData {
             pro_players: self.find_pros_in_game(participants),
         };
 
+        /* TODO: improve this, ugly af */
         let game_rc = Rc::new(game);
         let game_clone = Rc::clone(&game_rc);
+        let game_clone_2 = Rc::clone(&game_rc);
+
         self.games.push(game_rc);
 
         self.pros_in_game
             .insert(pro.summoner_name.clone(), game_clone); // TODO: remove .clone()
 
-        Ok(Some(
-            self.games
-                .last()
-                .expect("We just pushed game so this should be Some(Game)")
-                .as_ref(),
-        ))
+        Ok(Some(game_clone_2))
     }
 
-    fn find_pros_in_game(&mut self, summoners: Vec<CurrentGameParticipant>) -> Vec<Rc<Pro>> {
+    fn find_pros_in_game(&self, summoners: Vec<CurrentGameParticipant>) -> Vec<Rc<Pro>> {
         let mut pros_in_this_game: Vec<Rc<Pro>> = Vec::new();
         for summoner in summoners {
             let summoner_name = &summoner.summoner_name;
