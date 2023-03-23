@@ -3,7 +3,10 @@ use data::*;
 
 #[tokio::main]
 async fn main() {
-    eprintln!("sync_data(): {:?}", sync_data().await);
+    eprintln!(
+        "sync_data(): {:?}",
+        sync_data::sync_data::sync_summoner_ids().await
+    );
 
     let mut pro_data: ProData = match ProData::new() {
         Ok(v) => v,

@@ -1,4 +1,4 @@
-use csv::{ReaderBuilder, WriterBuilder};
+use csv::ReaderBuilder;
 use riven::consts::PlatformRoute;
 use std::fs::File;
 use std::io::{Error, ErrorKind};
@@ -17,6 +17,8 @@ pub type SummonerID = String;
 pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
+
+pub mod sync_data;
 
 #[derive(Debug, Clone)]
 pub struct Pro {
@@ -167,17 +169,18 @@ impl ProData {
             pro_players: self.find_pros_in_game(participants),
         };
 
-        /* TODO: improve this, ugly af */
         let game_rc = Rc::new(game);
-        let game_clone = Rc::clone(&game_rc);
-        let game_clone_2 = Rc::clone(&game_rc);
 
+        /* Insert each pro player in this game into the hashmap of pro_players that are in game. */
+        for pro_player in &game_rc.pro_players {
+            self.pros_in_game
+                .insert(pro_player.summoner_name.clone(), Rc::clone(&game_rc));
+        }
+
+        let game_clone = Rc::clone(&game_rc);
         self.games.push(game_rc);
 
-        self.pros_in_game
-            .insert(pro.summoner_name.clone(), game_clone); // TODO: remove .clone()
-
-        Ok(Some(game_clone_2))
+        Ok(Some(game_clone))
     }
 
     fn find_pros_in_game(&self, summoners: Vec<CurrentGameParticipant>) -> Vec<Rc<Pro>> {
@@ -196,84 +199,4 @@ impl ProData {
 
         pros_in_this_game
     }
-}
-
-async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
-    let riot_api = RiotApi::new(API_KEY);
-
-    let summoner = match riot_api
-        .summoner_v4()
-        .get_by_summoner_name(PlatformRoute::EUW1, summoner_name)
-        .await
-    {
-        Ok(s) => match s {
-            Some(summoner) => summoner,
-            None => return Err(Error::new(ErrorKind::Other, "Summoner not found")),
-        },
-        Err(_) => return Err(Error::new(ErrorKind::Other, "Error getting summoner info")),
-    };
-
-    Ok(summoner.id)
-}
-
-// TODO: implement sync_summoner_names()
-
-// FIXME: rename this function to sync_summoner_ids()
-pub async fn sync_data() -> Result<()> {
-    let old_file = File::open(PRO_FILE)?;
-    let mut reader = ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(old_file);
-
-    let new_file_name = "/home/isak102/.cache/lolmsi043905-923j39";
-    let new_file = File::create(new_file_name)?; // TODO: generate temp file
-    let mut writer = WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(new_file);
-
-    for (i, row) in reader.records().enumerate() {
-        let record = row?;
-
-        let player_name: String = record[0].to_string();
-        let team_short_name: TeamShort = record[1].to_string();
-        let team_full_name: TeamFull = record[2].to_string();
-        let summoner_name: SummonerName = record[3].to_string();
-        let summoner_id: SummonerID = record[4].to_string();
-
-        // TODO: improve this logic below
-        if i == 0 {
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name,
-                summoner_id,
-            ])?;
-            continue;
-        }
-
-        // TODO: update summoner name if summoner id exists
-        if summoner_id.is_empty() {
-            let new_summoner_id = get_summoner_id(&summoner_name).await?;
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name.clone(), // TODO: fix
-                new_summoner_id,
-            ])?;
-        } else {
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name,
-                summoner_id,
-            ])?;
-        }
-    }
-
-    std::fs::rename(new_file_name, PRO_FILE).expect("Updating data file failed while copying");
-
-    Ok(())
 }
