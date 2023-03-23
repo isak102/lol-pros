@@ -70,6 +70,12 @@ impl std::fmt::Display for Pro {
     }
 }
 
+impl std::fmt::Display for ProGame {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        todo!(); // TODO: finish this function
+    }
+}
+
 impl Team {
     fn new(short_name: String, full_name: String) -> Team {
         Team {
@@ -161,30 +167,28 @@ impl ProData {
             }
         };
 
-        // TODO: find way to remove this line
-        let participants: Vec<CurrentGameParticipant> = game_info.participants.clone();
+        let pro_players = self.find_pros_in_game(&game_info);
 
-        let game = ProGame {
+        let game = Rc::new(ProGame {
             game_info,
-            pro_players: self.find_pros_in_game(participants),
-        };
-
-        let game_rc = Rc::new(game);
+            pro_players: pro_players,
+        });
 
         /* Insert each pro player in this game into the hashmap of pro_players that are in game. */
-        for pro_player in &game_rc.pro_players {
+        for pro_player in &game.pro_players {
             self.pros_in_game
-                .insert(pro_player.summoner_name.clone(), Rc::clone(&game_rc));
+                .insert(pro_player.summoner_name.clone(), Rc::clone(&game));
         }
 
-        let game_clone = Rc::clone(&game_rc);
-        self.games.push(game_rc);
+        let game_clone = Rc::clone(&game);
+        self.games.push(game);
 
         Ok(Some(game_clone))
     }
 
-    fn find_pros_in_game(&self, summoners: Vec<CurrentGameParticipant>) -> Vec<Rc<Pro>> {
+    fn find_pros_in_game(&self, game_info: &CurrentGameInfo) -> Vec<Rc<Pro>> {
         let mut pros_in_this_game: Vec<Rc<Pro>> = Vec::new();
+        let summoners: &Vec<CurrentGameParticipant> = &game_info.participants;
         for summoner in summoners {
             let summoner_name = &summoner.summoner_name;
 
