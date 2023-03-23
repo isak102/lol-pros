@@ -24,5 +24,9 @@ async fn main() {
         eprintln!("Game: {:?}", pro_data.get_game(pro).await);
     }
 
-    eprintln!("pro_data: {:?}", pro_data);
+    eprintln!(
+        "\nFound {} game(s) with {} pro(s) in total",
+        pro_data.games_count(),
+        pro_data.pros_in_game_count()
+    );
 }

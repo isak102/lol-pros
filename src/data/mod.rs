@@ -199,4 +199,12 @@ impl ProData {
 
         pros_in_this_game
     }
+
+    pub fn games_count(&self) -> usize {
+        self.games.len()
+    }
+
+    pub fn pros_in_game_count(&self) -> usize {
+        self.pros_in_game.len()
+    }
 }
