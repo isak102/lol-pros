@@ -1,3 +1,5 @@
+use riven::consts::Team;
+
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -54,13 +56,8 @@ impl std::fmt::Display for ProGame {
             }
         }
 
-        // TODO: extract into function
-        write!(
-            output,
-            "\n\nBanned champions: {:?}",
-            &self.game_info.banned_champions
-        )
-        .unwrap();
+        let (blue_bans, red_bans) = banned_champions_to_string(&self.game_info.banned_champions);
+        write!(output, "\n\n\nBlue bans: {blue_bans}\nRed bans: {red_bans}",).unwrap();
 
         write!(f, "{}", output)?;
         Ok(())
@@ -82,6 +79,51 @@ fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &s
     .unwrap();
 
     result
+}
+
+fn banned_champions_to_string(banned_champions: &Vec<BannedChampion>) -> (String, String) {
+    let mut blue_string = String::new();
+    let mut red_string = String::new();
+
+    let _: Vec<&BannedChampion> = banned_champions
+        .iter()
+        .map(|champ| {
+            let push_champ_string = |s: &mut String| {
+                let banned_champ_str = match champ.champion_id.name() {
+                    Some(champ) => champ,
+                    None => "None",
+                };
+
+                s.push_str(format!("{banned_champ_str}, ").as_str());
+            };
+
+            match champ.team_id {
+                Team::BLUE => {
+                    push_champ_string(&mut blue_string);
+                }
+                Team::RED => {
+                    push_champ_string(&mut red_string);
+                }
+                _ => panic!("Champion was not banned by either BLUE or RED team"),
+            }
+
+            champ
+        })
+        .collect();
+
+    let suffix = ", ";
+    let remove_suffix = |s: &mut String| {
+        if let Some(stripped) = s.strip_suffix(suffix) {
+            stripped.to_string()
+        } else {
+            panic!("Strip should not fail here");
+        }
+    };
+
+    (
+        remove_suffix(&mut blue_string),
+        remove_suffix(&mut red_string),
+    )
 }
 
 impl ProGame {
