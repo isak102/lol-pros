@@ -35,51 +35,31 @@ pub(super) async fn sync_summoner_ids(config: &Config) -> Result<()> {
         .from_reader(old_file);
 
     let new_file_name = "/home/isak102/.cache/lolmsi043905-923j39";
-    let new_file = File::create(new_file_name)?; // TODO: generate temp file
-    let mut writer = WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(new_file);
+    let new_file = File::create(new_file_name)?;
+    let mut writer = WriterBuilder::new().has_headers(true).from_writer(new_file);
 
-    for (i, row) in reader.records().enumerate() {
+    for row in reader.records() {
         let record = row?;
 
         let player_name: String = record[0].to_string();
         let team_short_name: TeamShort = record[1].to_string();
         let team_full_name: TeamFull = record[2].to_string();
         let summoner_name: SummonerName = record[3].to_string();
+
         let summoner_id: SummonerID = record[4].to_string();
-
-        // TODO: improve this logic below
-        if i == 0 {
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name,
-                summoner_id,
-            ])?;
-            continue;
-        }
-
-        // TODO: update summoner name if summoner id exists
-        if summoner_id.is_empty() {
-            let new_summoner_id = get_summoner_id(&summoner_name).await?;
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name.clone(), // TODO: fix
-                new_summoner_id,
-            ])?;
+        let summoner_id = if summoner_id.is_empty() {
+            get_summoner_id(&summoner_name).await?
         } else {
-            writer.write_record(&[
-                player_name,
-                team_short_name,
-                team_full_name,
-                summoner_name,
-                summoner_id,
-            ])?;
-        }
+            summoner_id
+        };
+
+        writer.write_record(&[
+            player_name,
+            team_short_name,
+            team_full_name,
+            summoner_name,
+            summoner_id,
+        ])?;
     }
 
     std::fs::rename(new_file_name, &config.pro_file_path)
