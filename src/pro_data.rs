@@ -1,8 +1,6 @@
 use core::panic;
-use csv::ReaderBuilder;
 use riven::consts::PlatformRoute;
 use std::fmt::Write;
-use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::ops::Index;
 use std::{collections::HashMap, io::Result};
@@ -13,8 +11,9 @@ use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
 use crate::api_key;
+use crate::config::Config;
 
-const PRO_FILE: &str = "/home/isak102/.local/share/pros.csv";
+use self::io::load_pros;
 
 pub type PlayerName = String;
 pub type SummonerID = String;
@@ -184,26 +183,8 @@ impl Team {
 }
 
 impl ProData {
-    pub fn new() -> Result<ProData> {
-        let file = File::open(PRO_FILE)?;
-        let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
-
-        let mut pros = HashMap::new();
-
-        for result in reader.records() {
-            let record = result?;
-
-            let player_name: PlayerName = record[0].to_string();
-            let team_short_name: TeamShort = record[1].to_string();
-            let team_full_name: TeamFull = record[2].to_string();
-            let summoner_name: SummonerName = record[3].to_string();
-            let summoner_id: SummonerID = record[4].to_string();
-
-            let team = Team::new(team_short_name, team_full_name);
-            let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
-
-            pros.insert(summoner_name, Rc::new(pro));
-        }
+    pub async fn load(config: &Config) -> Result<ProData> {
+        let pros = load_pros(config).await?;
 
         Ok(ProData {
             pros: pros,

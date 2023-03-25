@@ -2,23 +2,28 @@ mod api_key;
 mod config;
 mod pro_data;
 
+use std::env;
+use std::process;
+
+use config::Config;
 use pro_data::*;
 
 #[tokio::main]
 async fn main() {
-    pro_data::io::sync_summoner_ids().await.unwrap();
+    let args: Vec<String> = env::args().collect();
 
-    let mut pro_data: ProData = match ProData::new() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    };
+    let config = Config::parse(&args).unwrap_or_else(|err| {
+        eprintln!("Error when parsing configuration: {err}");
+        process::exit(1);
+    });
 
     eprintln!("Getting pros...");
-    let pros = &pro_data.get_pros();
+    let mut pro_data = ProData::load(&config).await.unwrap_or_else(|err| {
+        eprintln!("Error when loading ProData: {err}");
+        process::exit(1);
+    });
 
+    let pros = &pro_data.get_pros();
     for pro in pros {
         let game = match pro_data.get_game(pro).await.unwrap() {
             Some(g) => g,

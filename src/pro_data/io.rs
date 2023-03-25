@@ -2,8 +2,34 @@ use super::*;
 use csv::{ReaderBuilder, WriterBuilder};
 use std::fs::File;
 
-pub async fn sync_summoner_ids() -> Result<()> {
-    let old_file = File::open(PRO_FILE)?;
+pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>> {
+    sync_summoner_ids(config).await?; // TODO: maybe remove this
+
+    let file = File::open(&config.pro_file_path)?;
+    let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
+
+    let mut pros = HashMap::new();
+
+    for result in reader.records() {
+        let record = result?;
+
+        let player_name: PlayerName = record[0].to_string();
+        let team_short_name: TeamShort = record[1].to_string();
+        let team_full_name: TeamFull = record[2].to_string();
+        let summoner_name: SummonerName = record[3].to_string();
+        let summoner_id: SummonerID = record[4].to_string();
+
+        let team = Team::new(team_short_name, team_full_name);
+        let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
+
+        pros.insert(summoner_name, Rc::new(pro));
+    }
+
+    Ok(pros)
+}
+
+pub(super) async fn sync_summoner_ids(config: &Config) -> Result<()> {
+    let old_file = File::open(&config.pro_file_path)?;
     let mut reader = ReaderBuilder::new()
         .has_headers(false)
         .from_reader(old_file);
@@ -56,7 +82,8 @@ pub async fn sync_summoner_ids() -> Result<()> {
         }
     }
 
-    std::fs::rename(new_file_name, PRO_FILE).expect("Updating data file failed while copying");
+    std::fs::rename(new_file_name, &config.pro_file_path)
+        .expect("Updating data file failed while copying");
 
     Ok(())
 }
