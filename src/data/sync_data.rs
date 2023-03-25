@@ -62,7 +62,7 @@ pub async fn sync_summoner_ids() -> Result<()> {
 }
 
 async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
-    let riot_api = RiotApi::new(API_KEY);
+    let riot_api = RiotApi::new(api_key::API_KEY);
 
     let summoner = match riot_api
         .summoner_v4()

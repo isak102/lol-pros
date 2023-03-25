@@ -12,8 +12,9 @@ use std::rc::Rc;
 use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
+use crate::api_key;
+
 const PRO_FILE: &str = "/home/isak102/.local/share/pros.csv";
-const API_KEY: &str = std::env!("RGAPI_KEY");
 
 pub type PlayerName = String;
 pub type SummonerID = String;
@@ -221,7 +222,7 @@ impl ProData {
     }
 
     pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<Rc<ProGame>>> {
-        let riot_api = RiotApi::new(API_KEY);
+        let riot_api = RiotApi::new(api_key::API_KEY);
 
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
