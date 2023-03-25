@@ -202,7 +202,7 @@ impl ProData {
         result
     }
 
-    pub async fn get_game(&mut self, pro: &Pro) -> Result<Option<Rc<ProGame>>> {
+    pub async fn fetch_game(&mut self, pro: &Pro) -> Result<Option<Rc<ProGame>>> {
         let riot_api = RiotApi::new(api_key::API_KEY);
 
         let summoner_id: &SummonerID = match &pro.summoner_id {

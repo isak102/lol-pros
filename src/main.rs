@@ -25,7 +25,7 @@ async fn main() {
 
     let pros = &pro_data.get_pros();
     for pro in pros {
-        let game = match pro_data.get_game(pro).await.unwrap() {
+        let game = match pro_data.fetch_game(pro).await.unwrap() {
             Some(g) => g,
             None => {
                 println!("...");
