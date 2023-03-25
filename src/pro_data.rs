@@ -39,7 +39,6 @@ struct Team {
 
 #[derive(Debug, Clone)]
 pub struct ProGame {
-    // TODO: implement Display
     game_info: CurrentGameInfo,
     pro_players: Vec<Rc<Pro>>,
 }
@@ -92,8 +91,8 @@ impl std::fmt::Display for ProGame {
             let blue_player: &CurrentGameParticipant = blue_team.index(i);
             let red_player: &CurrentGameParticipant = red_team.index(i);
 
-            let (blue_is_pro, blue_pro_name) = {
-                let pro = self.get_pro(&blue_player.summoner_name);
+            let extract_info = |player: &CurrentGameParticipant| {
+                let pro = self.get_pro(&player.summoner_name);
                 let is_pro = pro.is_some();
                 let mut pro_name = String::new();
 
@@ -105,19 +104,8 @@ impl std::fmt::Display for ProGame {
                 (is_pro, pro_name)
             };
 
-            // TODO: make anonymous function and combine this code below with the one above
-            let (red_is_pro, red_pro_name) = {
-                let pro = self.get_pro(&red_player.summoner_name);
-                let is_pro = pro.is_some();
-                let mut pro_name = String::new();
-
-                if is_pro {
-                    let pro = pro.unwrap();
-                    write!(pro_name, "{} {}", pro.team.short_name, pro.player_name).unwrap();
-                }
-
-                (is_pro, pro_name)
-            };
+            let (blue_is_pro, blue_pro_name) = extract_info(blue_player);
+            let (red_is_pro, red_pro_name) = extract_info(red_player);
 
             write!(
                 output,
