@@ -22,7 +22,7 @@ pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
 
-pub mod sync_data;
+pub mod io;
 
 #[derive(Debug, Clone)]
 pub struct Pro {

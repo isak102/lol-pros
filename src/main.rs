@@ -6,7 +6,7 @@ use pro_data::*;
 
 #[tokio::main]
 async fn main() {
-    pro_data::sync_data::sync_summoner_ids().await.unwrap();
+    pro_data::io::sync_summoner_ids().await.unwrap();
 
     let mut pro_data: ProData = match ProData::new() {
         Ok(v) => v,
