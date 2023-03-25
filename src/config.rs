@@ -7,7 +7,7 @@ impl Config {
     pub fn parse(args: &[String]) -> Result<Config, &'static str> {
         let sync_summoner_names = false; // TODO: implement support for this
 
-        let pro_file_path = if args.len() > 2 {
+        let pro_file_path = if args.len() > 1 {
             args[1].clone()
         } else {
             String::from("/home/isak102/.local/share/pros.csv")
