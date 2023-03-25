@@ -1,7 +1,6 @@
 use core::panic;
 use csv::ReaderBuilder;
 use riven::consts::PlatformRoute;
-use std::cell::Ref;
 use std::fmt::Write;
 use std::fs::File;
 use std::io::{Error, ErrorKind};
@@ -122,7 +121,7 @@ impl std::fmt::Display for ProGame {
 
             write!(
                 output,
-                "{0: <50} {1}",
+                "{0: <40} {1}",
                 participant_to_string(blue_player, (blue_is_pro, &blue_pro_name)),
                 participant_to_string(red_player, (red_is_pro, &red_pro_name)),
             )?;
@@ -132,6 +131,9 @@ impl std::fmt::Display for ProGame {
                 output.push('\n');
             }
         }
+        
+        // TODO: extract into function
+        write!(output, "\n\nBanned champions: {:?}", &self.game_info.banned_champions).unwrap();
 
         write!(f, "{}", output)?;
         Ok(())
