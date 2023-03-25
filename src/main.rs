@@ -1,12 +1,12 @@
-mod data;
 mod api_key;
 mod config;
+mod pro_data;
 
-use data::*;
+use pro_data::*;
 
 #[tokio::main]
 async fn main() {
-    data::sync_data::sync_summoner_ids().await.unwrap();
+    pro_data::sync_data::sync_summoner_ids().await.unwrap();
 
     let mut pro_data: ProData = match ProData::new() {
         Ok(v) => v,
