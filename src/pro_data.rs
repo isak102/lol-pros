@@ -9,10 +9,10 @@ use std::rc::Rc;
 use riven::models::spectator_v4::*;
 use riven::RiotApi;
 
-use crate::api_key;
-use crate::config::Config;
 use self::io::load_pros;
 pub use self::pro_game::*;
+use crate::api_key;
+use crate::config::Config;
 
 pub mod io;
 mod pro_game;
@@ -22,7 +22,6 @@ pub type SummonerID = String;
 pub type SummonerName = String;
 pub type TeamShort = String;
 pub type TeamFull = String;
-
 
 #[derive(Debug, Clone)]
 pub struct Pro {
@@ -70,7 +69,7 @@ impl std::fmt::Display for Pro {
 impl Team {
     fn new(short_name: String, full_name: String) -> Team {
         Team {
-            short_name,
+            short_name: short_name.to_uppercase(),
             full_name,
         }
     }
