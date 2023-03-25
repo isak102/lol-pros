@@ -131,9 +131,14 @@ impl std::fmt::Display for ProGame {
                 output.push('\n');
             }
         }
-        
+
         // TODO: extract into function
-        write!(output, "\n\nBanned champions: {:?}", &self.game_info.banned_champions).unwrap();
+        write!(
+            output,
+            "\n\nBanned champions: {:?}",
+            &self.game_info.banned_champions
+        )
+        .unwrap();
 
         write!(f, "{}", output)?;
         Ok(())

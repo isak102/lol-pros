@@ -3,7 +3,7 @@ use data::*;
 
 #[tokio::main]
 async fn main() {
-    sync_data::sync_data::sync_summoner_ids().await.unwrap();
+    data::sync_data::sync_summoner_ids().await.unwrap();
 
     let mut pro_data: ProData = match ProData::new() {
         Ok(v) => v,
