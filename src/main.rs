@@ -1,5 +1,7 @@
 mod data;
 mod api_key;
+mod config;
+
 use data::*;
 
 #[tokio::main]
