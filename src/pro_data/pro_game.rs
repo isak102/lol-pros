@@ -36,8 +36,9 @@ impl std::fmt::Display for ProGame {
                 let mut pro_name = String::new();
 
                 if is_pro {
-                    let pro = pro.unwrap();
-                    write!(pro_name, "{} {}", pro.team.short_name, pro.player_name).unwrap();
+                    let pro = pro.expect("This should never be None");
+                    write!(pro_name, "{} {}", pro.team.short_name, pro.player_name)
+                        .expect("Writing to this buffer should never fail");
                 }
 
                 (is_pro, pro_name)
@@ -60,7 +61,8 @@ impl std::fmt::Display for ProGame {
         }
 
         let (blue_bans, red_bans) = banned_champions_to_string(&self.game_info.banned_champions);
-        write!(output, "\n\n\nBlue bans: {blue_bans}\nRed bans: {red_bans}",).unwrap();
+        write!(output, "\n\n\nBlue bans: {blue_bans}\nRed bans: {red_bans}",)
+            .expect("Writing to this buffer should never fail");
 
         write!(f, "{}", output)?;
         Ok(())
@@ -70,16 +72,19 @@ impl std::fmt::Display for ProGame {
 fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &str)) -> String {
     let mut result = String::new();
     if let (true, pro_name) = is_pro {
-        write!(result, "<{}> ", pro_name).unwrap();
+        write!(result, "<{}> ", pro_name).expect("Writing to this buffer should never fail");
     }
 
     write!(
         result,
         "{} [{}]",
-        participant.champion_id.name().unwrap(),
+        participant
+            .champion_id
+            .name()
+            .expect("Champion should have a name"),
         participant.summoner_name,
     )
-    .unwrap();
+    .expect("Writing to this buffer should never fail");
 
     result
 }

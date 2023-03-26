@@ -104,6 +104,7 @@ impl ProData {
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
             None => {
+                // TODO: add better error handling here
                 panic!("Summoner had no summoner_id, call sync_summoner_ids before fetching games")
             }
         };
