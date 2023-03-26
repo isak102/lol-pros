@@ -1,6 +1,7 @@
 use riven::consts::Team;
 use std::panic;
 
+use ansi_term::Color;
 use chrono::{DateTime, Local, TimeZone};
 
 use super::*;
@@ -67,8 +68,18 @@ impl std::fmt::Display for ProGame {
             write!(
                 output,
                 "{0: <40} {1}",
-                participant_to_string(blue_player, (blue_is_pro, &blue_pro_name)),
-                participant_to_string(red_player, (red_is_pro, &red_pro_name)),
+                Color::Blue
+                    .paint(participant_to_string(
+                        blue_player,
+                        (blue_is_pro, &blue_pro_name)
+                    ))
+                    .to_string(),
+                Color::Red
+                    .paint(participant_to_string(
+                        red_player,
+                        (red_is_pro, &red_pro_name)
+                    ))
+                    .to_string(),
             )?;
 
             /* dont append newline if we are on the last line */
@@ -78,8 +89,13 @@ impl std::fmt::Display for ProGame {
         }
 
         let (blue_bans, red_bans) = banned_champions_to_string(&self.game_info.banned_champions);
-        write!(output, "\n\n\nBlue bans: {blue_bans}\nRed bans: {red_bans}",)
-            .expect("Writing to this buffer should never fail");
+        write!(
+            output,
+            "\n\nBlue bans: {}\nRed bans: {}",
+            Color::Blue.paint(blue_bans),
+            Color::Red.paint(red_bans)
+        )
+        .expect("Writing to this buffer should never fail");
 
         write!(f, "{}", output)?;
         Ok(())
