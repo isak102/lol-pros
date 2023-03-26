@@ -1,10 +1,10 @@
+use super::*;
+use chrono::{DateTime, Local, TimeZone};
 use riven::consts::Team;
 use std::panic;
-
-use ansi_term::Color;
-use chrono::{DateTime, Local, TimeZone};
-
-use super::*;
+use std::str;
+use strip_ansi_escapes;
+use yansi::{Color, Paint};
 
 #[derive(Debug, Clone)]
 pub struct ProGame {
@@ -35,18 +35,9 @@ impl std::fmt::Display for ProGame {
         )
         .expect("Writing to this buffer should never fail");
 
-        // FIXME: uncomment when game_length_to_string is fixed
-        // eprintln!("Game length: {}", self.game_info.game_length);
-        // write!(
-        //     output,
-        //     "{}\n\n",
-        //     game_length_to_string(self.game_info.game_length)
-        // )
-        // .expect("Writing to this buffer should never fail");
-
         for i in 0..5 {
-            let blue_player: &CurrentGameParticipant = blue_team.index(i);
-            let red_player: &CurrentGameParticipant = red_team.index(i);
+            let blue_participant: &CurrentGameParticipant = blue_team.index(i);
+            let red_participant: &CurrentGameParticipant = red_team.index(i);
 
             let extract_info = |player: &CurrentGameParticipant| {
                 let pro = self.get_pro(&player.summoner_name);
@@ -62,24 +53,29 @@ impl std::fmt::Display for ProGame {
                 (is_pro, pro_name)
             };
 
-            let (blue_is_pro, blue_pro_name) = extract_info(blue_player);
-            let (red_is_pro, red_pro_name) = extract_info(red_player);
+            let (blue_is_pro, blue_pro_name) = extract_info(blue_participant);
+            let (red_is_pro, red_pro_name) = extract_info(red_participant);
+
+            let blue_player = Paint::wrapping(participant_to_string(
+                blue_participant,
+                (blue_is_pro, &blue_pro_name),
+            ))
+            .fg(Color::Blue)
+            .to_string();
+
+            let red_player = Paint::wrapping(participant_to_string(
+                red_participant,
+                (red_is_pro, &red_pro_name),
+            ))
+            .fg(Color::Red)
+            .to_string();
 
             write!(
                 output,
-                "{0: <40} {1}",
-                Color::Blue
-                    .paint(participant_to_string(
-                        blue_player,
-                        (blue_is_pro, &blue_pro_name)
-                    ))
-                    .to_string(),
-                Color::Red
-                    .paint(participant_to_string(
-                        red_player,
-                        (red_is_pro, &red_pro_name)
-                    ))
-                    .to_string(),
+                "{0: <width$} {1}",
+                blue_player,
+                red_player,
+                width = 40 + ansicode_length(&blue_player)
             )?;
 
             /* dont append newline if we are on the last line */
@@ -102,8 +98,16 @@ impl std::fmt::Display for ProGame {
     }
 }
 
+fn ansicode_length(str: &str) -> usize {
+    let stripped_string = str::from_utf8(&strip_ansi_escapes::strip(str).unwrap())
+        .unwrap()
+        .to_string();
+
+    str.len() - stripped_string.len()
+}
+
 // FIXME: game time is very inaccurate, use game_start_time to calculate instead
-fn game_length_to_string(game_length: i64) -> String {
+fn _game_length_to_string(game_length: i64) -> String {
     let minutes = game_length / 60;
     let seconds = game_length % 60;
 
@@ -123,8 +127,12 @@ fn epoch_ms_to_local_time(epoch_ms: i64) -> DateTime<Local> {
 
 fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &str)) -> String {
     let mut result = String::new();
+
     if let (true, pro_name) = is_pro {
-        write!(result, "<{}> ", pro_name).expect("Writing to this buffer should never fail");
+        let pro_name_wrapped = format!("<{}>", pro_name);
+        let pro_name_colored = Paint::yellow(pro_name_wrapped);
+
+        write!(result, "{} ", pro_name_colored).expect("Writing to this buffer should never fail");
     }
 
     write!(

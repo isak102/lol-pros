@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ansi_term = "0.12.1"
 chrono = "0.4.24"
-chrono-tz = "0.8.1"
 csv = "1.2.1"
 riven = "2.13.0"
+strip-ansi-escapes = "0.1.1"
 tokio = { version = "1.26", features = ["rt-multi-thread"] }
+yansi = "0.5.1"
