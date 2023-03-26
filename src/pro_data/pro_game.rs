@@ -1,6 +1,8 @@
 use riven::consts::Team;
 use std::panic;
 
+use chrono::{DateTime, Local, TimeZone};
+
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -24,13 +26,22 @@ impl std::fmt::Display for ProGame {
 
         let mut output = String::new();
 
-        // FIXME: add start time, queue type
-        write!(
+        // FIXME: add queue type
+        writeln!(
             output,
-            "{}\n\n",
-            game_length_to_string(self.game_info.game_length)
+            "Game start time: {}\n",
+            start_time_to_string(self.game_info.game_start_time)
         )
         .expect("Writing to this buffer should never fail");
+
+        // FIXME: uncomment when game_length_to_string is fixed
+        // eprintln!("Game length: {}", self.game_info.game_length);
+        // write!(
+        //     output,
+        //     "{}\n\n",
+        //     game_length_to_string(self.game_info.game_length)
+        // )
+        // .expect("Writing to this buffer should never fail");
 
         for i in 0..5 {
             let blue_player: &CurrentGameParticipant = blue_team.index(i);
@@ -75,11 +86,23 @@ impl std::fmt::Display for ProGame {
     }
 }
 
+// FIXME: game time is very inaccurate, use game_start_time to calculate instead
 fn game_length_to_string(game_length: i64) -> String {
     let minutes = game_length / 60;
     let seconds = game_length % 60;
 
     format!("{:02}:{:02}", minutes, seconds)
+}
+
+fn start_time_to_string(start_time: i64) -> String {
+    let local = epoch_ms_to_local_time(start_time);
+    local.format("%X").to_string()
+}
+
+fn epoch_ms_to_local_time(epoch_ms: i64) -> DateTime<Local> {
+    let tz = Local::now().timezone(); // Get local timezone
+    let dt = tz.timestamp_millis_opt(epoch_ms).unwrap(); // Convert epoch milliseconds to DateTime
+    dt.with_timezone(&tz) // Convert DateTime to local timezone
 }
 
 fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &str)) -> String {
