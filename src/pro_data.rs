@@ -1,13 +1,13 @@
 use riven::consts::PlatformRoute;
+use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::Write;
-use std::io::{Error, ErrorKind};
 use std::ops::Index;
-use std::{collections::HashMap, io::Result};
 
 use std::rc::Rc;
 
 use riven::models::spectator_v4::*;
-use riven::RiotApi;
+use riven::{RiotApi, RiotApiError};
 
 use self::io::load_pros;
 pub use self::pro_game::*;
@@ -76,7 +76,7 @@ impl Team {
 }
 
 impl ProData {
-    pub async fn load(config: &Config) -> Result<ProData> {
+    pub async fn load(config: &Config) -> Result<ProData, Box<dyn Error>> {
         let pros = load_pros(config).await?;
 
         Ok(ProData {
@@ -95,20 +95,16 @@ impl ProData {
         result
     }
 
-    pub async fn fetch_game(&mut self, pro: &Pro) -> Result<Option<Rc<ProGame>>> {
+    pub async fn fetch_game(
+        &mut self,
+        pro: &Pro,
+    ) -> std::result::Result<Option<Rc<ProGame>>, RiotApiError> {
         let riot_api = RiotApi::new(api_key::API_KEY);
 
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
             None => {
-                return Err(Error::new(
-                    // TODO: make custom error
-                    ErrorKind::Other,
-                    format!(
-                        "{} {} has no summoner ID",
-                        pro.team.short_name, pro.player_name
-                    ),
-                ));
+                panic!("Summoner had no summoner_id, call sync_summoner_ids before fetching games")
             }
         };
 
@@ -117,26 +113,15 @@ impl ProData {
             return Ok(Some(Rc::clone(&game)));
         }
 
+        // FIXME: filter out all games that are not ranked games
+
         let game_info = match riot_api
             .spectator_v4()
             .get_current_game_info_by_summoner(PlatformRoute::EUW1, summoner_id)
-            .await
+            .await?
         {
-            Ok(game) => match game {
-                Some(game) => game,
-                None => return Ok(None),
-            },
-            Err(e) => {
-                eprint!("{}", e);
-                return Err(Error::new(
-                    // TODO: make custom error
-                    ErrorKind::Other,
-                    format!(
-                        "Error when finding game for {} {}",
-                        pro.team.short_name, pro.player_name
-                    ),
-                ));
-            }
+            Some(g) => g,
+            None => return Ok(None),
         };
 
         let pro_players = self.find_pros_in_game(&game_info);

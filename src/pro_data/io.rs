@@ -1,8 +1,9 @@
 use super::*;
 use csv::{ReaderBuilder, WriterBuilder};
-use std::fs::File;
+use std::io::{Error as IoError, ErrorKind};
+use std::{error::Error, fs::File};
 
-pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>> {
+pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>, Box<dyn Error>> {
     sync_summoner_ids(config).await?; // TODO: maybe remove this
 
     let file = File::open(&config.pro_file_path)?;
@@ -28,7 +29,7 @@ pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>
     Ok(pros)
 }
 
-pub(super) async fn sync_summoner_ids(config: &Config) -> Result<()> {
+pub(super) async fn sync_summoner_ids(config: &Config) -> Result<(), Box<dyn Error>> {
     let old_file = File::open(&config.pro_file_path)?;
     let mut reader = ReaderBuilder::new()
         .has_headers(false)
@@ -68,19 +69,21 @@ pub(super) async fn sync_summoner_ids(config: &Config) -> Result<()> {
     Ok(())
 }
 
-async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID> {
+async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID, Box<dyn Error>> {
     let riot_api = RiotApi::new(api_key::API_KEY);
 
     let summoner = match riot_api
         .summoner_v4()
         .get_by_summoner_name(PlatformRoute::EUW1, summoner_name)
-        .await
+        .await?
     {
-        Ok(s) => match s {
-            Some(summoner) => summoner,
-            None => return Err(Error::new(ErrorKind::Other, "Summoner not found")),
-        },
-        Err(_) => return Err(Error::new(ErrorKind::Other, "Error getting summoner info")),
+        Some(summoner) => summoner,
+        None => {
+            return Err(Box::new(IoError::new(
+                ErrorKind::Other,
+                "Summoner not found",
+            )))
+        }
     };
 
     Ok(summoner.id)

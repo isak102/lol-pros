@@ -1,4 +1,5 @@
 use riven::consts::Team;
+use std::panic;
 
 use super::*;
 
@@ -22,6 +23,8 @@ impl std::fmt::Display for ProGame {
         }
 
         let mut output = String::new();
+
+        // FIXME: add start time, how long the game has gone on for, queue type
 
         for i in 0..5 {
             let blue_player: &CurrentGameParticipant = blue_team.index(i);
