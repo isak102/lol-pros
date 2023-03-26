@@ -26,12 +26,18 @@ async fn main() {
     let pros = &pro_data.get_pros();
     let separator = "-".repeat(70);
     for pro in pros {
-        let game = match pro_data.fetch_game(pro).await.unwrap() {
-            Some(g) => g,
-            None => {
-                println!("<{pro}> offline...");
+        let game = match pro_data.fetch_game(pro).await {
+            Err(e) => {
+                eprintln!("Error when fetching game for {pro}: {e}");
                 continue;
             }
+            Ok(result) => match result {
+                None => {
+                    println!("<{pro}> offline...");
+                    continue;
+                }
+                Some(g) => g,
+            },
         };
         println!("{separator}\n{game}\n{separator}");
     }
