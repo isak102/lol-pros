@@ -24,7 +24,13 @@ impl std::fmt::Display for ProGame {
 
         let mut output = String::new();
 
-        // FIXME: add start time, how long the game has gone on for, queue type
+        // FIXME: add start time, queue type
+        write!(
+            output,
+            "{}\n\n",
+            game_length_to_string(self.game_info.game_length)
+        )
+        .expect("Writing to this buffer should never fail");
 
         for i in 0..5 {
             let blue_player: &CurrentGameParticipant = blue_team.index(i);
@@ -67,6 +73,13 @@ impl std::fmt::Display for ProGame {
         write!(f, "{}", output)?;
         Ok(())
     }
+}
+
+fn game_length_to_string(game_length: i64) -> String {
+    let minutes = game_length / 60;
+    let seconds = game_length % 60;
+
+    format!("{:02}:{:02}", minutes, seconds)
 }
 
 fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &str)) -> String {
