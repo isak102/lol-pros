@@ -14,6 +14,7 @@ pub struct ProGame {
 
 impl std::fmt::Display for ProGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        
         let mut blue_team: Vec<&CurrentGameParticipant> = Vec::new();
         let mut red_team: Vec<&CurrentGameParticipant> = Vec::new();
 
@@ -30,7 +31,7 @@ impl std::fmt::Display for ProGame {
         // FIXME: add queue type
         writeln!(
             output,
-            "Game start time: {}\n",
+            "Game start time: {}\n", // TODO: print how long ago the start time was
             start_time_to_string(self.game_info.game_start_time)
         )
         .expect("Writing to this buffer should never fail");
@@ -130,7 +131,7 @@ fn participant_to_string(participant: &CurrentGameParticipant, is_pro: (bool, &s
 
     if let (true, pro_name) = is_pro {
         let pro_name_wrapped = format!("<{}>", pro_name);
-        let pro_name_colored = Paint::yellow(pro_name_wrapped);
+        let pro_name_colored = Paint::yellow(pro_name_wrapped).bold();
 
         write!(result, "{} ", pro_name_colored).expect("Writing to this buffer should never fail");
     }
