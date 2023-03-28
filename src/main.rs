@@ -2,7 +2,6 @@ mod api_key;
 mod config;
 mod pro_data;
 
-use std::env;
 use std::process;
 
 use config::Config;
@@ -10,9 +9,7 @@ use pro_data::*;
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let config = Config::parse(&args).unwrap_or_else(|err| {
+    let config = Config::parse().unwrap_or_else(|err| {
         eprintln!("Error when parsing configuration: {err}");
         process::exit(1);
     });
