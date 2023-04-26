@@ -9,6 +9,8 @@ edition = "2021"
 chrono = "0.4.24"
 clap = { version = "4.1.14", features = ["derive"] }
 csv = "1.2.1"
+enum-iterator = "1.4.0"
+lazy_static = "1.4.0"
 prettytable-rs = "0.10.0"
 riven = "2.13.0"
 strip-ansi-escapes = "0.1.1"
