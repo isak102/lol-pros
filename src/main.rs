@@ -1,6 +1,7 @@
 mod api_key;
 mod config;
 mod pro_data;
+mod ui;
 
 use std::process;
 
@@ -36,7 +37,9 @@ async fn main() {
                 Some(g) => g,
             },
         };
-        println!("{separator}\n{game}\n{separator}");
+        println!("{separator}");
+        ui::table::print(&game).expect("printing should succeed");
+        println!("{separator}");
     }
 
     println!(

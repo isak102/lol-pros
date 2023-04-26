@@ -2,7 +2,7 @@ use clap::Parser;
 use yansi::Paint;
 
 pub struct Config {
-    pub pro_file_path: String,
+    pub pro_file_path: String, // TODO: turn this into a path
     pub sync_summoner_names: bool,
 }
 

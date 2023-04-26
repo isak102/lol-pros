@@ -12,6 +12,7 @@ pub struct ProGame {
     pub(super) pro_players: Vec<Rc<Pro>>,
 }
 
+// TODO: move this to ui::raw
 impl std::fmt::Display for ProGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         
