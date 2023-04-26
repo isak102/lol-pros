@@ -196,7 +196,8 @@ fn banned_champions_to_string(banned_champions: &Vec<BannedChampion>) -> (String
 }
 
 impl ProGame {
-    fn get_pro(&self, summoner_name: &SummonerName) -> Option<&Pro> {
+    pub fn get_pro(&self, summoner_name: &SummonerName) -> Option<&Pro> {
+        // TODO: change to &str
         for pro in &self.pro_players {
             if pro.as_ref().summoner_name.eq(summoner_name) {
                 return Some(pro.as_ref());
