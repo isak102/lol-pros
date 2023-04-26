@@ -219,4 +219,12 @@ impl ProGame {
         assert_eq!(red.len(), 5);
         (blue, red)
     }
+
+    pub fn get_participants(&self) -> Vec<&CurrentGameParticipant> {
+        self.game_info.participants.iter().collect()
+    }
+
+    pub fn get_pro_players(&self) -> Vec<&Pro> {
+        self.pro_players.iter().map(|p| p.as_ref()).collect()
+    }
 }
