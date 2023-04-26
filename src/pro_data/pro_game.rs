@@ -15,7 +15,6 @@ pub struct ProGame {
 // TODO: move this to ui::raw
 impl std::fmt::Display for ProGame {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        
         let mut blue_team: Vec<&CurrentGameParticipant> = Vec::new();
         let mut red_team: Vec<&CurrentGameParticipant> = Vec::new();
 
@@ -204,5 +203,20 @@ impl ProGame {
             }
         }
         None
+    }
+
+    /// Get the teams in the game
+    /// # Returns
+    /// A tuple of vectors with references to each player in the team. Both vectors will have the
+    /// size 5
+    pub fn get_teams(&self) -> (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) {
+        let is_red = |p: &&CurrentGameParticipant| p.team_id == Team::RED;
+
+        let (blue, red): (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) =
+            self.game_info.participants.iter().partition(is_red);
+
+        assert_eq!(blue.len(), 5);
+        assert_eq!(red.len(), 5);
+        (blue, red)
     }
 }
