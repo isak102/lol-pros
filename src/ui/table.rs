@@ -20,8 +20,9 @@ impl TableData {
         for (blue_participant, red_participant) in red_team.iter().zip(blue_team.iter()) {
             let f = |participant: &CurrentGameParticipant| {
                 let mut player = Vec::new();
+                let summoner_id = &participant.summoner_id;
                 let summoner_name = &participant.summoner_name;
-                let pro_name = pro_game.get_pro(&summoner_name);
+                let pro_name = pro_game.get_pro(&summoner_id);
                 let champion_name = participant.champion_id.name().unwrap();
 
                 player.push(CellData {
@@ -32,7 +33,7 @@ impl TableData {
                 player.push(CellData {
                     team: participant.team_id,
                     column: Column::SummonerName,
-                    raw_string: summoner_name.clone().trim_end().to_string(),
+                    raw_string: summoner_name.trim_end().to_string(),
                 });
                 player.push(CellData {
                     team: participant.team_id,

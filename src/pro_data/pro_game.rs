@@ -41,7 +41,7 @@ impl std::fmt::Display for ProGame {
             let red_participant: &CurrentGameParticipant = red_team.index(i);
 
             let extract_info = |player: &CurrentGameParticipant| {
-                let pro = self.get_pro(&player.summoner_name);
+                let pro = self.get_pro(&player.summoner_id);
                 let is_pro = pro.is_some();
                 let mut pro_name = String::new();
 
@@ -196,14 +196,16 @@ fn banned_champions_to_string(banned_champions: &Vec<BannedChampion>) -> (String
 }
 
 impl ProGame {
-    pub fn get_pro(&self, summoner_name: &SummonerName) -> Option<&Pro> {
-        // TODO: change to &str
-        for pro in &self.pro_players {
-            if pro.as_ref().summoner_name.eq(summoner_name) {
-                return Some(pro.as_ref());
-            }
+    pub fn get_pro(&self, summoner_id: &str) -> Option<&Pro> {
+        let p = self
+            .pro_players
+            .iter()
+            .find(|pro| pro.summoner_id.as_deref() == Some(summoner_id));
+
+        match p {
+            Some(p) => Some(p.as_ref()),
+            None => None,
         }
-        None
     }
 
     /// Get the teams in the game

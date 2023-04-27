@@ -7,7 +7,7 @@ use std::ops::Index;
 use std::rc::Rc;
 
 use riven::models::spectator_v4::*;
-use riven::{RiotApiError};
+use riven::RiotApiError;
 
 use self::io::load_pros;
 pub use self::pro_game::*;
@@ -39,9 +39,9 @@ struct Team {
 
 #[derive(Debug)]
 pub struct ProData {
-    pros: HashMap<SummonerName, Rc<Pro>>,
+    pros: HashMap<SummonerID, Rc<Pro>>,
     games: Vec<Rc<ProGame>>,
-    pros_in_game: HashMap<SummonerName, Rc<ProGame>>,
+    pros_in_game: HashMap<SummonerID, Rc<ProGame>>,
 }
 
 impl Pro {
@@ -78,7 +78,6 @@ impl Team {
 impl ProData {
     pub async fn load(config: &Config) -> Result<ProData, Box<dyn Error>> {
         let pros = load_pros(config).await?;
-
         Ok(ProData {
             pros: pros,
             games: Vec::new(),
@@ -146,9 +145,9 @@ impl ProData {
         let mut pros_in_this_game: Vec<Rc<Pro>> = Vec::new();
         let summoners: &Vec<CurrentGameParticipant> = &game_info.participants;
         for summoner in summoners {
-            let summoner_name = &summoner.summoner_name;
+            let summoner_id = &summoner.summoner_id;
 
-            match self.pros.get(summoner_name) {
+            match self.pros.get(summoner_id) {
                 Some(pro) => {
                     pros_in_this_game.push(Rc::clone(pro));
                 }

@@ -1,8 +1,8 @@
 use super::*;
+use crate::api::RIOT_API;
 use csv::{ReaderBuilder, WriterBuilder};
 use std::io::{Error as IoError, ErrorKind};
 use std::{error::Error, fs::File};
-use crate::api::RIOT_API;
 
 pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>, Box<dyn Error>> {
     sync_summoner_ids(config).await?; // TODO: maybe remove this
@@ -22,9 +22,9 @@ pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>
         let summoner_id: SummonerID = record[4].to_string();
 
         let team = Team::new(team_short_name, team_full_name);
-        let pro = Pro::new(player_name, team, summoner_name.clone(), summoner_id);
+        let pro = Pro::new(player_name, team, summoner_name, summoner_id.clone());
 
-        pros.insert(summoner_name, Rc::new(pro));
+        pros.insert(summoner_id, Rc::new(pro));
     }
 
     Ok(pros)
@@ -80,8 +80,8 @@ async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID, Box
         None => {
             return Err(Box::new(IoError::new(
                 ErrorKind::Other,
-                "Summoner not found",
-            )))
+                format!("Could not find summoner {}", summoner_name),
+            )));
         }
     };
 
