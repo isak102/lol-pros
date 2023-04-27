@@ -16,7 +16,7 @@ impl TableData {
         let mut cells: Vec<Vec<CellData>> = Vec::new();
         let (blue_team, red_team) = pro_game.get_teams();
 
-        for (blue_participant, red_participant) in blue_team.iter().zip(red_team.iter()) {
+        for (blue_participant, red_participant) in red_team.iter().zip(blue_team.iter()) {
             let f = |participant: &CurrentGameParticipant| {
                 let mut player = Vec::new();
                 let summoner_name = &participant.summoner_name;
@@ -31,7 +31,7 @@ impl TableData {
                 player.push(CellData {
                     team: participant.team_id,
                     column: Column::SummonerName,
-                    raw_string: summoner_name.clone(),
+                    raw_string: summoner_name.clone().trim_end().to_string(),
                 });
                 player.push(CellData {
                     team: participant.team_id,
@@ -120,16 +120,16 @@ impl CellData {
                 s.push_str(" ".repeat(whitespace_to_add).as_str());
                 s.push_str(self.raw_string.as_str());
                 let mut cell = Cell::new(s.as_str());
-                cell.align(Alignment::LEFT);
-                cell.style(Attr::ForegroundColor(color::RED));
+                cell.align(Alignment::RIGHT);
+                cell.style(Attr::ForegroundColor(color::BLUE));
                 cell
             }
             Team::RED => {
                 s.push_str(self.raw_string.as_str());
                 s.push_str(" ".repeat(whitespace_to_add).as_str());
                 let mut cell = Cell::new(s.as_str());
-                cell.align(Alignment::RIGHT);
-                cell.style(Attr::ForegroundColor(color::BLUE));
+                cell.align(Alignment::LEFT);
+                cell.style(Attr::ForegroundColor(color::RED));
                 cell
             }
             Team::OTHER => panic!("Summoner should be BLUE or RED team"),
