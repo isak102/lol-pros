@@ -12,7 +12,6 @@ use yansi::Paint;
 
 pub struct Config {
     pub pro_file_path: String, // FIXME: turn this into a path
-    pub sync_summoner_names: bool,
 }
 
 #[tokio::main]
@@ -32,8 +31,23 @@ async fn main() {
 
     let c = Config {
         pro_file_path: args.pro_file_path,
-        sync_summoner_names: false,
     };
+
+    match args.command {
+        Some(cmd) => match cmd {
+            args::Command::Sync {} => {
+                pro_data::io::sync_summoner_ids(&c)
+                    .await
+                    .unwrap_or_else(|err| {
+                        eprintln!("Error when syncing summoner IDs: {}", err);
+                        process::exit(1);
+                    });
+                eprintln!("Done syncing summoner IDs");
+                process::exit(0);
+            }
+        },
+        None => {}
+    }
 
     eprintln!("Getting pros...");
     let mut pro_data = ProData::load(&c).await.unwrap_or_else(|err| {
