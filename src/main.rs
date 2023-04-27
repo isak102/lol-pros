@@ -1,23 +1,42 @@
 mod api;
-mod config;
+mod args;
 mod pro_data;
 mod ui;
 
 use std::process;
 
-use config::Config;
+use clap::Parser;
 use pro_data::*;
 use riven::reqwest::StatusCode;
+use yansi::Paint;
+
+pub struct Config {
+    pub pro_file_path: String, // FIXME: turn this into a path
+    pub sync_summoner_names: bool,
+}
 
 #[tokio::main]
 async fn main() {
-    let config = Config::parse().unwrap_or_else(|err| {
-        eprintln!("Error when parsing configuration: {err}");
-        process::exit(1);
-    });
+    let args = args::Args::parse();
+    let disable_colors;
+
+    // disable color if CLICOLOR is set to 0
+    if let Ok(true) = std::env::var("CLICOLOR").map(|v| v == "0") {
+        disable_colors = true;
+    } else {
+        disable_colors = args.disable_colors;
+    }
+    if disable_colors {
+        Paint::disable();
+    }
+
+    let c = Config {
+        pro_file_path: args.pro_file_path,
+        sync_summoner_names: false,
+    };
 
     eprintln!("Getting pros...");
-    let mut pro_data = ProData::load(&config).await.unwrap_or_else(|err| {
+    let mut pro_data = ProData::load(&c).await.unwrap_or_else(|err| {
         eprintln!("Error when loading pro data: {err}");
         process::exit(1);
     });

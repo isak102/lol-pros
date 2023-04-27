@@ -12,7 +12,7 @@ use riven::RiotApiError;
 use self::io::load_pros;
 pub use self::pro_game::*;
 use crate::api::RIOT_API;
-use crate::config::Config;
+use super::Config;
 
 pub mod io;
 mod pro_game;
