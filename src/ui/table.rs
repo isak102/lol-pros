@@ -56,22 +56,21 @@ impl TableData {
 
     fn get_column_lengths(&self) -> Vec<usize> {
         let mut column_lengths = Vec::new();
+        const PADDING: usize = 1;
 
         for column in ALL_COLUMNS.iter() {
-            let mut max_length = 0;
-            for row in &self.rows {
-                let cell = row
-                    .iter()
-                    .find(|cell| cell.column == *column)
-                    .expect("Cell should exist");
-                let length = cell.get_str_length();
-                if length > max_length {
-                    max_length = length;
-                }
-            }
+            let max_length = self
+                .rows
+                .iter()
+                .flat_map(|row| row.iter().filter(|cell| cell.column == *column))
+                .map(|cell| cell.get_str_length() + PADDING)
+                .max()
+                .unwrap_or(0);
+
             column_lengths.push(max_length);
         }
         assert_eq!(column_lengths.len(), ALL_COLUMNS.len());
+
         column_lengths
     }
 
@@ -109,7 +108,7 @@ struct CellData {
 
 impl CellData {
     fn make_cell(&self, length: usize) -> Cell {
-        assert!(length >= self.raw_string.len());
+        assert!(length + 1 >= self.raw_string.len());
 
         let whitespace_to_add = length - self.raw_string.len();
 
