@@ -6,6 +6,7 @@ use prettytable::format::{self, Alignment};
 use prettytable::{self, color, row, Attr, Cell, Row, Table};
 use riven::consts::Team;
 use riven::models::spectator_v4::CurrentGameParticipant;
+// use termsize;
 
 struct TableData {
     rows: Vec<Vec<CellData>>,
@@ -151,5 +152,13 @@ enum Column {
 }
 
 pub fn print(pro_game: &ProGame) -> Result<(), ()> {
-    Ok(TableData::new(pro_game).print())
+    let width = termsize::get().map(|size| size.cols);
+
+    let separator = "—".repeat(width.unwrap_or(120) as usize);
+
+    println!("{separator}");
+    TableData::new(pro_game).print();
+    println!("{separator}");
+
+    Ok(())
 }

@@ -22,7 +22,6 @@ async fn main() {
     });
 
     let pros = &pro_data.get_pros();
-    let separator = "—".repeat(140);
     for pro in pros {
         let game = match pro_data.fetch_game(pro).await {
             Err(e) => {
@@ -37,9 +36,7 @@ async fn main() {
                 Some(g) => g,
             },
         };
-        println!("{separator}");
         ui::table::print(&game).expect("printing should succeed");
-        println!("{separator}");
     }
 
     println!(
