@@ -34,7 +34,7 @@ pub struct Pro {
 #[derive(Debug, Clone)]
 struct Team {
     short_name: String,
-    full_name: String,
+    _full_name: String,
 }
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ impl Team {
     fn new(short_name: String, full_name: String) -> Team {
         Team {
             short_name: short_name.to_uppercase(),
-            full_name,
+            _full_name: full_name,
         }
     }
 }

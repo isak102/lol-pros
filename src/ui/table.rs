@@ -88,7 +88,7 @@ impl TableData {
         for row in &self.rows {
             let cells = {
                 let mut v = Vec::new();
-                for (i, cell) in row.iter().enumerate() {
+                for cell in row {
                     v.push(cell.make_cell(column_lengths[cell.clone().column as usize]))
                 }
                 v
