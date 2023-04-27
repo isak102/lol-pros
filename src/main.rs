@@ -1,4 +1,4 @@
-mod api_key;
+mod api;
 mod config;
 mod pro_data;
 mod ui;

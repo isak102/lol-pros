@@ -7,11 +7,11 @@ use std::ops::Index;
 use std::rc::Rc;
 
 use riven::models::spectator_v4::*;
-use riven::{RiotApi, RiotApiError};
+use riven::{RiotApiError};
 
 use self::io::load_pros;
 pub use self::pro_game::*;
-use crate::api_key;
+use crate::api::RIOT_API;
 use crate::config::Config;
 
 pub mod io;
@@ -99,8 +99,6 @@ impl ProData {
         &mut self,
         pro: &Pro,
     ) -> std::result::Result<Option<Rc<ProGame>>, RiotApiError> {
-        let riot_api = RiotApi::new(api_key::API_KEY);
-
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
             None => {
@@ -116,7 +114,7 @@ impl ProData {
 
         // FIXME: filter out all games that are not ranked games
 
-        let game_info = match riot_api
+        let game_info = match RIOT_API
             .spectator_v4()
             .get_current_game_info_by_summoner(PlatformRoute::EUW1, summoner_id)
             .await?

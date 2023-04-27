@@ -2,6 +2,7 @@ use super::*;
 use csv::{ReaderBuilder, WriterBuilder};
 use std::io::{Error as IoError, ErrorKind};
 use std::{error::Error, fs::File};
+use crate::api::RIOT_API;
 
 pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>, Box<dyn Error>> {
     sync_summoner_ids(config).await?; // TODO: maybe remove this
@@ -70,9 +71,7 @@ pub(super) async fn sync_summoner_ids(config: &Config) -> Result<(), Box<dyn Err
 }
 
 async fn get_summoner_id(summoner_name: &SummonerName) -> Result<SummonerID, Box<dyn Error>> {
-    let riot_api = RiotApi::new(api_key::API_KEY);
-
-    let summoner = match riot_api
+    let summoner = match RIOT_API
         .summoner_v4()
         .get_by_summoner_name(PlatformRoute::EUW1, summoner_name)
         .await?
