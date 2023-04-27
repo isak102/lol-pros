@@ -2,7 +2,7 @@ use clap::Parser;
 use yansi::Paint;
 
 pub struct Config {
-    pub pro_file_path: String, // TODO: turn this into a path
+    pub pro_file_path: String, // FIXME: turn this into a path
     pub sync_summoner_names: bool,
 }
 
@@ -12,7 +12,8 @@ struct Args {
     #[arg(short, long, default_value = "/home/isak102/.local/share/pros.csv")]
     pro_file_path: String,
 
-    /// Disable colors (CLICOLOR=0 takes precedence over this)
+    /// TODO: find way to disable color for table printing too
+    /// Disable colors [doesn't work with tables] (CLICOLOR=0 takes precedence over this option)
     #[arg(short, long)]
     disable_colors: bool,
 }
