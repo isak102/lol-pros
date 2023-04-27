@@ -24,6 +24,9 @@ async fn main() {
 
     let pros = &pro_data.get_pros();
     for pro in pros {
+        if pro_data.is_in_game(pro) {
+            continue;
+        }
         let game = match pro_data.fetch_game(pro).await {
             Err(e) => {
                 if e.status_code() == Some(StatusCode::FORBIDDEN) {

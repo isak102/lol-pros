@@ -94,6 +94,11 @@ impl ProData {
         result
     }
 
+    pub fn is_in_game(&self, pro: &Pro) -> bool {
+        self.pros_in_game
+            .contains_key(pro.summoner_id.clone().unwrap().as_str())
+    }
+
     pub async fn fetch_game(
         &mut self,
         pro: &Pro,
@@ -107,7 +112,11 @@ impl ProData {
         };
 
         /* If this pro already is in a found game then we return that game instantly */
-        if let Some(game) = self.pros_in_game.get(&pro.summoner_name) {
+        if let Some(game) = self
+            .pros_in_game
+            .get(pro.summoner_id.clone().unwrap().as_str())
+        {
+            dbg!("Found pro in game");
             return Ok(Some(Rc::clone(&game)));
         }
 
@@ -132,7 +141,7 @@ impl ProData {
         /* Insert each pro player in this game into the hashmap of pro_players that are in game. */
         for pro_player in &game.pro_players {
             self.pros_in_game
-                .insert(pro_player.summoner_name.clone(), Rc::clone(&game));
+                .insert(pro_player.summoner_id.clone().unwrap(), Rc::clone(&game));
         }
 
         let game_clone = Rc::clone(&game);
