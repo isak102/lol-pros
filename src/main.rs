@@ -17,13 +17,15 @@ async fn main() {
 
     eprintln!("Getting pros...");
     let mut pro_data = ProData::load(&config).await.unwrap_or_else(|err| {
-        eprintln!("Error when loading ProData: {err}");
+        eprintln!("Error when loading pro data: {err}");
         process::exit(1);
     });
 
     let pros = &pro_data.get_pros();
     for pro in pros {
         let game = match pro_data.fetch_game(pro).await {
+            // FIXME: match on the error, if it was API_KEY error then exit print
+            // pretty message
             Err(e) => {
                 eprintln!("Error when fetching game for {pro}: {e}");
                 continue;

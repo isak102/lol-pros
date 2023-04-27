@@ -12,8 +12,14 @@ pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>
 
     let mut pros = HashMap::new();
 
-    for result in reader.records() {
-        let record = result?;
+    for row in reader.records() {
+        let record = match row {
+            Ok(r) => r,
+            Err(_) => {
+                dbg!("Error reading record", &row);
+                continue;
+            }
+        };
 
         let player_name: PlayerName = record[0].to_string();
         let team_short_name: TeamShort = record[1].to_string();
@@ -41,7 +47,13 @@ pub(super) async fn sync_summoner_ids(config: &Config) -> Result<(), Box<dyn Err
     let mut writer = WriterBuilder::new().has_headers(true).from_writer(new_file);
 
     for row in reader.records() {
-        let record = row?;
+        let record = match row {
+            Ok(r) => r,
+            Err(_) => {
+                dbg!("Error reading record", &row);
+                continue;
+            }
+        };
 
         let player_name: String = record[0].to_string();
         let team_short_name: TeamShort = record[1].to_string();
