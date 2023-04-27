@@ -1,82 +1,106 @@
 use super::*;
 use crate::api::RIOT_API;
-use csv::{ReaderBuilder, WriterBuilder};
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use std::io::{Error as IoError, ErrorKind};
 use std::{error::Error, fs::File};
 
-pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>, Box<dyn Error>> {
-    sync_summoner_ids(config).await?; // TODO: maybe remove this
+#[derive(serde::Deserialize, serde::Serialize)]
+struct Row {
+    pro_name: String,
+    short_team: String,
+    long_team: String,
+    summoner_name: String,
+    summoner_id: String,
+}
 
+lazy_static::lazy_static! {
+    pub static ref CSV_HEADER: StringRecord = StringRecord::from(vec![
+        "pro_name",
+        "short_team",
+        "long_team",
+        "summoner_name",
+        "summoner_id",
+    ]);
+}
+
+pub(super) async fn load_pros(config: &Config) -> Result<HashMap<String, Rc<Pro>>, Box<dyn Error>> {
     let file = File::open(&config.pro_file_path)?;
     let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
 
     let mut pros = HashMap::new();
 
-    for row in reader.records() {
-        let record = match row {
-            Ok(r) => r,
-            Err(_) => {
-                dbg!("Error reading record", &row);
+    for record in reader.records() {
+        let row: Row = match record {
+            Ok(r) => match r.deserialize(Some(&CSV_HEADER)) {
+                Ok(r) => r,
+                Err(_) => {
+                    dbg!("Error reading record");
+                    continue;
+                }
+            },
+            Err(e) => {
+                eprintln!("Error CSV record {e}, skipping line");
                 continue;
             }
         };
 
-        let player_name: PlayerName = record[0].to_string();
-        let team_short_name: TeamShort = record[1].to_string();
-        let team_full_name: TeamFull = record[2].to_string();
-        let summoner_name: SummonerName = record[3].to_string();
-        let summoner_id: SummonerID = record[4].to_string();
+        let team = Team::new(row.short_team, row.long_team);
+        let pro = Pro::new(
+            row.pro_name,
+            team,
+            row.summoner_name,
+            row.summoner_id.clone(),
+        );
 
-        let team = Team::new(team_short_name, team_full_name);
-        let pro = Pro::new(player_name, team, summoner_name, summoner_id.clone());
-
-        pros.insert(summoner_id, Rc::new(pro));
+        pros.insert(row.summoner_id, Rc::new(pro));
     }
 
     Ok(pros)
 }
 
-pub(super) async fn sync_summoner_ids(config: &Config) -> Result<(), Box<dyn Error>> {
+pub async fn sync_summoner_ids(config: &Config) -> Result<(), Box<dyn Error>> {
     let old_file = File::open(&config.pro_file_path)?;
-    let mut reader = ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(old_file);
+    let mut reader = ReaderBuilder::new().has_headers(true).from_reader(old_file);
 
-    let new_file_name = "/home/isak102/.cache/lolmsi043905-923j39";
-    let new_file = File::create(new_file_name)?;
+    const NEW_FILE_NAME: &str = "/home/isak102/.cache/lolmsi043905-923j39";
+    let new_file = File::create(NEW_FILE_NAME)?;
     let mut writer = WriterBuilder::new().has_headers(true).from_writer(new_file);
 
-    for row in reader.records() {
-        let record = match row {
-            Ok(r) => r,
-            Err(_) => {
-                dbg!("Error reading record", &row);
+    for record in reader.records() {
+        let row: Row = match record {
+            Ok(r) => match r.deserialize(Some(&CSV_HEADER)) {
+                Ok(r) => r,
+                Err(_) => {
+                    dbg!("Error reading record");
+                    continue;
+                }
+            },
+            Err(e) => {
+                eprintln!("Error CSV record {e}, skipping line");
                 continue;
             }
         };
 
-        let player_name: String = record[0].to_string();
-        let team_short_name: TeamShort = record[1].to_string();
-        let team_full_name: TeamFull = record[2].to_string();
-        let summoner_name: SummonerName = record[3].to_string();
-
-        let summoner_id: SummonerID = record[4].to_string();
-        let summoner_id = if summoner_id.is_empty() {
-            get_summoner_id(&summoner_name).await?
+        let summoner_id = if row.summoner_id.is_empty() {
+            let s = get_summoner_id(&row.summoner_name).await?;
+            eprintln!("Found summoner id for {}: {}", row.pro_name, s);
+            s
         } else {
-            summoner_id
+            row.summoner_id
         };
 
-        writer.write_record(&[
-            player_name,
-            team_short_name,
-            team_full_name,
-            summoner_name,
+        let new_row = Row {
+            pro_name: row.pro_name,
+            short_team: row.short_team,
+            long_team: row.long_team,
+            summoner_name: row.summoner_name,
             summoner_id,
-        ])?;
+        };
+
+        writer.serialize(new_row)?;
     }
 
-    std::fs::rename(new_file_name, &config.pro_file_path)
+    std::fs::rename(NEW_FILE_NAME, &config.pro_file_path)
         .expect("Updating data file failed while copying");
 
     Ok(())

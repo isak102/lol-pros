@@ -17,11 +17,8 @@ use super::Config;
 pub mod io;
 mod pro_game;
 
-pub type PlayerName = String;
 pub type SummonerID = String;
 pub type SummonerName = String;
-pub type TeamShort = String;
-pub type TeamFull = String;
 
 #[derive(Debug, Clone)]
 pub struct Pro {
