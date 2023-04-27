@@ -1,182 +1,155 @@
-use crate::pro_data::{Pro, ProGame};
+use crate::pro_data::ProGame;
 
-use prettytable::format::Alignment;
-use prettytable::{self, color, format, row, Attr, Cell, Row};
-use riven::consts::Champion;
+use enum_iterator::Sequence;
+use lazy_static::lazy_static;
+use prettytable::format::{self, Alignment};
+use prettytable::{self, color, row, Attr, Cell, Row, Table};
 use riven::consts::Team;
 use riven::models::spectator_v4::CurrentGameParticipant;
 
-/// Creates a cell where the text is aligned to `alignment` and the cell size in characters is at
-/// least `min_length` long
-fn create_cell(string: &str, alignment: Alignment, min_length: usize) -> Cell {
-    if string.len() > min_length {
-        // TODO: maybe make it shorter?
-        return Cell::new(string);
+struct TableData {
+    rows: Vec<Vec<CellData>>,
+}
+
+impl TableData {
+    fn new(pro_game: &ProGame) -> TableData {
+        let mut cells: Vec<Vec<CellData>> = Vec::new();
+        let (blue_team, red_team) = pro_game.get_teams();
+
+        for (blue_participant, red_participant) in red_team.iter().zip(blue_team.iter()) {
+            let f = |participant: &CurrentGameParticipant| {
+                let mut player = Vec::new();
+                let summoner_name = &participant.summoner_name;
+                let pro_name = pro_game.get_pro(&summoner_name);
+                let champion_name = participant.champion_id.name().unwrap();
+
+                player.push(CellData {
+                    team: participant.team_id,
+                    column: Column::ChampionName,
+                    raw_string: champion_name.to_string(),
+                });
+                player.push(CellData {
+                    team: participant.team_id,
+                    column: Column::SummonerName,
+                    raw_string: summoner_name.clone().trim_end().to_string(),
+                });
+                player.push(CellData {
+                    team: participant.team_id,
+                    column: Column::ProName,
+                    raw_string: match pro_name {
+                        Some(pro) => pro.to_string(),
+                        None => "".to_string(),
+                    },
+                });
+                player
+            };
+
+            let (mut blue_player, mut red_player) = (f(blue_participant), f(red_participant));
+
+            blue_player.reverse();
+            blue_player.append(&mut red_player);
+            cells.push(blue_player);
+        }
+
+        Self { rows: cells }
     }
 
-    let whitespace_to_add = min_length - string.len();
+    fn get_column_lengths(&self) -> Vec<usize> {
+        let mut column_lengths = Vec::new();
+        const PADDING: usize = 1;
 
-    let mut s = String::new();
-    match alignment {
-        Alignment::LEFT => {
-            s.push_str(string);
-            s.push_str(" ".repeat(whitespace_to_add).as_str());
-            let mut cell = Cell::new(s.as_str());
-            cell.align(Alignment::LEFT);
-            cell
+        for column in ALL_COLUMNS.iter() {
+            let max_length = self
+                .rows
+                .iter()
+                .flat_map(|row| row.iter().filter(|cell| cell.column == *column))
+                .map(|cell| cell.get_str_length() + PADDING)
+                .max()
+                .unwrap_or(0);
+
+            column_lengths.push(max_length);
         }
-        Alignment::RIGHT => {
-            s.push_str(" ".repeat(whitespace_to_add).as_str());
-            s.push_str(string);
-            let mut cell = Cell::new(s.as_str());
-            cell.align(Alignment::RIGHT);
-            cell
+        assert_eq!(column_lengths.len(), ALL_COLUMNS.len());
+
+        column_lengths
+    }
+
+    fn print(&self) {
+        let column_lengths = self.get_column_lengths();
+        let mut table = Table::new();
+        table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+        table.set_titles(row![
+            // TODO: use column enum
+            "Pro", "Summoner", "Champion", "Champion", "Summoner", "Pro",
+        ]);
+
+        assert_eq!(self.rows.len(), 5);
+        for row in &self.rows {
+            let cells = {
+                let mut v = Vec::new();
+                for (i, cell) in row.iter().enumerate() {
+                    v.push(cell.make_cell(column_lengths[cell.clone().column as usize]))
+                }
+                v
+            };
+
+            table.add_row(Row::new(cells));
         }
-        Alignment::CENTER => panic!("Center alignment not supported"),
+        table.printstd();
     }
 }
 
-enum CellType {
-    Champion(usize),
-    SummonerName(usize),
-    ProName(usize),
-}
-
-fn get_largest_cell_length(pro_game: &ProGame, cell_type: CellType) -> usize {
-    let mut largest_length: usize = 0;
-    let pros = pro_game.get_participants();
-
-    match cell_type {
-        // TODO: clean this up, can be alot better
-        CellType::Champion(_) => {
-            for participant in pros {
-                let val = participant
-                    .champion_id
-                    .name()
-                    .expect("Champion should have a name")
-                    .len();
-                if val > largest_length {
-                    largest_length = val
-                }
-            }
-            return largest_length;
-        }
-        CellType::SummonerName(_) => {
-            for participant in pros {
-                let val = participant.summoner_name.len();
-                if val > largest_length {
-                    largest_length = val
-                }
-            }
-            return largest_length;
-        }
-        CellType::ProName(_) => {
-            let pros = pro_game.get_pro_players();
-            for pro in pros {
-                let val = pro.to_string().len();
-                if val > largest_length {
-                    largest_length = val
-                }
-            }
-            return largest_length;
-        }
-    }
-}
-
-fn create_player_chunk(
-    player: &CurrentGameParticipant,
-    pro: Option<&Pro>,
+#[derive(Debug)]
+struct CellData {
     team: Team,
-    cell_types: &[CellType; 3],
-) -> Vec<Cell> {
-    let mut chunk = Vec::new();
-    let alignment = match team {
-        Team::BLUE => Alignment::RIGHT,
-        Team::RED => Alignment::LEFT,
-        Team::OTHER => panic!("Team can't be OTHER"),
-    };
-    for cell_type in cell_types {
-        match cell_type {
-            CellType::Champion(min_length) => {
-                let champion_name = player
-                    .champion_id
-                    .name()
-                    .expect("Champion should have a name");
-                let cell = create_cell(champion_name, alignment, *min_length);
-                chunk.push(cell);
+    column: Column,
+    raw_string: String,
+}
+
+impl CellData {
+    fn make_cell(&self, length: usize) -> Cell {
+        assert!(length + 1 >= self.raw_string.len());
+
+        let whitespace_to_add = length - self.raw_string.len();
+
+        let mut s = String::new();
+        match self.team {
+            Team::BLUE => {
+                s.push_str(" ".repeat(whitespace_to_add).as_str());
+                s.push_str(self.raw_string.as_str());
+                let mut cell = Cell::new(s.as_str());
+                cell.align(Alignment::RIGHT);
+                cell.style(Attr::ForegroundColor(color::BLUE));
+                cell
             }
-            CellType::SummonerName(min_length) => {
-                let cell = create_cell(&player.summoner_name, alignment, *min_length);
-                chunk.push(cell);
+            Team::RED => {
+                s.push_str(self.raw_string.as_str());
+                s.push_str(" ".repeat(whitespace_to_add).as_str());
+                let mut cell = Cell::new(s.as_str());
+                cell.align(Alignment::LEFT);
+                cell.style(Attr::ForegroundColor(color::RED));
+                cell
             }
-            CellType::ProName(min_length) => {
-                // TODO: fix this
-                let s = match pro {
-                    Some(p) => p.to_string(),
-                    None => "".to_string(),
-                };
-                let cell = create_cell(s.as_str(), alignment, *min_length);
-                chunk.push(cell);
-            }
+            Team::OTHER => panic!("Summoner should be BLUE or RED team"),
         }
     }
-    if team == Team::BLUE {
-        chunk.reverse();
-    }
 
-    return chunk;
+    fn get_str_length(&self) -> usize {
+        self.raw_string.len()
+    }
+}
+
+lazy_static! {
+    static ref ALL_COLUMNS: Vec<Column> = enum_iterator::all::<Column>().collect::<Vec<_>>();
+}
+
+#[derive(Sequence, Eq, PartialEq, Debug, Copy, Clone)]
+enum Column {
+    ChampionName,
+    SummonerName,
+    ProName,
 }
 
 pub fn print(pro_game: &ProGame) -> Result<(), ()> {
-    let mut table = prettytable::Table::new();
-    table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    table.set_titles(row![
-        "Pro", "Summoner", "Champion", "Champion", "Summoner", "Pro",
-    ]);
-
-    const MIN_CELL_LENGTH: usize = 10;
-
-    let cell_lenths = [
-        // TODO: improve this, it is really ugly
-        CellType::Champion(get_largest_cell_length(
-            pro_game,
-            CellType::Champion(MIN_CELL_LENGTH),
-        )),
-        CellType::SummonerName(get_largest_cell_length(
-            pro_game,
-            CellType::SummonerName(MIN_CELL_LENGTH),
-        )),
-        CellType::ProName(get_largest_cell_length(
-            pro_game,
-            CellType::ProName(MIN_CELL_LENGTH),
-        )),
-    ];
-
-    let (blue_team, red_team) = pro_game.get_teams();
-    for (blue_player, red_player) in blue_team.iter().zip(red_team.iter()) {
-        let blue_player_chunk = create_player_chunk(
-            blue_player,
-            pro_game.get_pro(&blue_player.summoner_name),
-            Team::BLUE,
-            &cell_lenths,
-        );
-        let red_player_chunk = create_player_chunk(
-            red_player,
-            pro_game.get_pro(&red_player.summoner_name),
-            Team::RED,
-            &cell_lenths,
-        );
-
-        let mut row = Row::empty();
-        for cell in blue_player_chunk {
-            row.add_cell(cell.with_style(Attr::ForegroundColor(color::BLUE)));
-        }
-        for cell in red_player_chunk {
-            row.add_cell(cell.with_style(Attr::ForegroundColor(color::RED)));
-        }
-        table.add_row(row);
-    }
-
-    table.printstd();
-    Ok(())
+    Ok(TableData::new(pro_game).print())
 }
