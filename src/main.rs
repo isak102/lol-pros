@@ -7,6 +7,7 @@ use std::process;
 
 use config::Config;
 use pro_data::*;
+use riven::reqwest::StatusCode;
 
 #[tokio::main]
 async fn main() {
@@ -24,10 +25,12 @@ async fn main() {
     let pros = &pro_data.get_pros();
     for pro in pros {
         let game = match pro_data.fetch_game(pro).await {
-            // FIXME: match on the error, if it was API_KEY error then exit print
-            // pretty message
             Err(e) => {
-                eprintln!("Error when fetching game for {pro}: {e}");
+                if e.status_code() == Some(StatusCode::FORBIDDEN) {
+                    eprintln!("ERROR: 403 received, probably due to bad API key");
+                    std::process::exit(1);
+                }
+                eprintln!("Error when fetching game for {pro}: {}", e);
                 continue;
             }
             Ok(result) => match result {
