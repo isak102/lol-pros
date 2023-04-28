@@ -152,12 +152,13 @@ enum Column {
     ProName,
 }
 
-pub fn print(pro_game: &ProGame) -> Result<(), ()> {
+pub async fn print(pro_game: &ProGame) -> Result<(), ()> {
     let width = termsize::get().map(|size| size.cols);
 
     let separator = "—".repeat(width.unwrap_or(120) as usize);
 
     println!("{separator}");
+    eprintln!("{}LP", pro_game.average_lp().await);
     TableData::new(pro_game).print();
     println!("{separator}");
 

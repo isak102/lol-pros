@@ -77,7 +77,9 @@ async fn main() {
                 Some(g) => g,
             },
         };
-        ui::table::print(&game).expect("printing should succeed");
+        ui::table::print(&game)
+            .await
+            .expect("printing should succeed");
     }
 
     println!(

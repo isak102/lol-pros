@@ -6,7 +6,8 @@ use riven::consts::Team;
 use std::panic;
 use std::str;
 use strip_ansi_escapes;
-use yansi::{Color, Paint};
+use tokio::task;
+use yansi::{Paint};
 
 #[derive(Debug, Clone)]
 pub struct ProGame {
@@ -48,6 +49,22 @@ impl ProGame {
         (blue, red)
     }
 
+    pub async fn average_lp(&self) -> usize {
+        let mut total_lp = 0;
+        let mut tasks = vec![];
+
+        for participant in &self.game_info.participants {
+            let summoner_id = participant.summoner_id.clone();
+            let handle = task::spawn(get_lp(summoner_id));
+            tasks.push(handle);
+        }
+
+        for handle in tasks {
+            total_lp += handle.await.unwrap().unwrap().unwrap();
+        }
+
+        total_lp / &self.game_info.participants.len()
+    }
 }
 
 // FIXME: Move the functions in this file somewhere else
