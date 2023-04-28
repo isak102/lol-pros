@@ -9,10 +9,9 @@ use std::rc::Rc;
 use riven::models::spectator_v4::*;
 use riven::RiotApiError;
 
-use self::io::load_pros;
 pub use self::pro_game::*;
-use crate::api::RIOT_API;
 use super::Config;
+use crate::api::RIOT_API;
 
 pub mod io;
 mod pro_game;
@@ -74,7 +73,7 @@ impl Team {
 
 impl ProData {
     pub async fn load(config: &Config) -> Result<ProData, Box<dyn Error>> {
-        let pros = load_pros(config).await?;
+        let pros = io::load_pros(config).await?;
         Ok(ProData {
             pros: pros,
             games: Vec::new(),
@@ -92,8 +91,8 @@ impl ProData {
     }
 
     pub fn is_in_game(&self, pro: &Pro) -> bool {
-        self.pros_in_game
-            .contains_key(pro.summoner_id.clone().unwrap().as_str())
+        let summoner_id = pro.summoner_id.clone().unwrap_or("".to_string());
+        self.pros_in_game.contains_key(summoner_id.as_str())
     }
 
     pub async fn fetch_game(
@@ -103,8 +102,8 @@ impl ProData {
         let summoner_id: &SummonerID = match &pro.summoner_id {
             Some(id) => id,
             None => {
-                // TODO: add better error handling here
-                panic!("Summoner had no summoner_id, call sync_summoner_ids before fetching games")
+                eprintln!("{} has no summoner ID, can't find game. Quitting.", pro);
+                std::process::exit(1);
             }
         };
 
