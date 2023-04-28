@@ -30,6 +30,7 @@ impl TopLeagues {
             ),
         );
 
+        // FIXME: fix these unwraps
         vec![master.unwrap(), grandmaster.unwrap(), challenger.unwrap()]
     }
 

@@ -1,12 +1,10 @@
-use crate::pro_data::ProGame;
+use crate::pro_data::{Player, ProGame};
 
 use enum_iterator::Sequence;
 use lazy_static::lazy_static;
 use prettytable::format::{self, Alignment};
-use prettytable::{self, color, row, Attr, Cell, Row, Table};
+use prettytable::{self, color, Attr, Cell, Row, Table};
 use riven::consts::Team;
-use riven::models::spectator_v4::CurrentGameParticipant;
-// use termsize;
 
 struct TableData {
     rows: Vec<Vec<CellData>>,
@@ -18,32 +16,54 @@ impl TableData {
         let (blue_team, red_team) = pro_game.teams();
 
         for (blue_participant, red_participant) in red_team.iter().zip(blue_team.iter()) {
-            let f = |participant: &CurrentGameParticipant| {
-                let mut player = Vec::new();
-                let summoner_id = &participant.summoner_id;
-                let summoner_name = &participant.summoner_name;
+            let f = |player: &Player| {
+                let mut player_row = Vec::new();
+                let summoner_id = &player.current_game_participant.summoner_id;
+                let summoner_name = &player.current_game_participant.summoner_name;
                 let pro_name = pro_game.get_pro(&summoner_id);
-                let champion_name = participant.champion_id.name().unwrap();
+                let champion_name = player.current_game_participant.champion_id.name().unwrap();
 
-                player.push(CellData {
-                    team: participant.team_id,
-                    column: Column::ChampionName,
-                    raw_string: champion_name.to_string(),
-                });
-                player.push(CellData {
-                    team: participant.team_id,
-                    column: Column::SummonerName,
-                    raw_string: summoner_name.trim_end().to_string(),
-                });
-                player.push(CellData {
-                    team: participant.team_id,
-                    column: Column::ProName,
-                    raw_string: match pro_name {
-                        Some(pro) => pro.to_string(),
-                        None => "".to_string(),
-                    },
-                });
-                player
+                for column in ALL_COLUMNS.iter().rev() {
+                    match column {
+                        Column::ProName => {
+                            player_row.push(CellData {
+                                team: player.current_game_participant.team_id,
+                                column: Column::ProName,
+                                raw_string: match pro_name {
+                                    Some(pro) => pro.to_string(),
+                                    None => "".to_string(),
+                                },
+                            });
+                        }
+                        Column::RankInfo => {
+                            let rank_str = match player.rank() {
+                                Some(rank) => rank.to_string(),
+                                None => "-".to_string(),
+                            };
+                            player_row.push(CellData {
+                                team: player.current_game_participant.team_id,
+                                column: Column::RankInfo,
+                                raw_string: rank_str,
+                            });
+                        }
+                        Column::SummonerName => {
+                            player_row.push(CellData {
+                                team: player.current_game_participant.team_id,
+                                column: Column::SummonerName,
+                                raw_string: summoner_name.trim_end().to_string(),
+                            });
+                        }
+                        Column::ChampionName => {
+                            player_row.push(CellData {
+                                team: player.current_game_participant.team_id,
+                                column: Column::ChampionName,
+                                raw_string: champion_name.to_string(),
+                            });
+                        }
+                    }
+                }
+
+                player_row
             };
 
             let (mut blue_player, mut red_player) = (f(blue_participant), f(red_participant));
@@ -76,14 +96,36 @@ impl TableData {
         column_lengths
     }
 
+    fn get_title_row() -> Row {
+        let mut column_strings: Vec<String> = Vec::new();
+        let mut result = Vec::new();
+
+        for column in ALL_COLUMNS.iter() {
+            column_strings.push(column.to_string());
+        }
+
+        let mut f = |s| {
+            let mut c = Cell::new(s);
+            c.style(Attr::Bold);
+            c.align(Alignment::CENTER);
+            result.push(c)
+        };
+
+        for column_string in column_strings.iter() {
+            f(column_string);
+        }
+        for column_string in column_strings.iter().rev() {
+            f(column_string);
+        }
+
+        Row::new(result)
+    }
+
     fn print(&self) {
         let column_lengths = self.get_column_lengths();
         let mut table = Table::new();
         table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-        table.set_titles(row![
-            // TODO: use column enum
-            "Pro", "Summoner", "Champion", "Champion", "Summoner", "Pro",
-        ]);
+        table.set_titles(Self::get_title_row());
 
         assert_eq!(self.rows.len(), 5);
         for row in &self.rows {
@@ -145,11 +187,13 @@ lazy_static! {
     static ref ALL_COLUMNS: Vec<Column> = enum_iterator::all::<Column>().collect::<Vec<_>>();
 }
 
-#[derive(Sequence, Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(Sequence, Eq, PartialEq, Debug, Copy, Clone, strum_macros::Display)]
+/// Columns ordered from left to right
 enum Column {
-    ChampionName,
-    SummonerName,
     ProName,
+    RankInfo,
+    SummonerName,
+    ChampionName,
 }
 
 pub async fn print(pro_game: &ProGame) -> Result<(), ()> {

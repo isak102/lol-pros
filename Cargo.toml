@@ -15,6 +15,7 @@ prettytable-rs = "0.10.0"
 riven = "2.13.0"
 serde = { version = "1.0.160", features = ["derive"] }
 strip-ansi-escapes = "0.1.1"
+strum_macros = "0.24.3"
 termsize = "0.1.6"
 tokio = { version = "1.26", features = ["rt-multi-thread"] }
 yansi = "0.5.1"

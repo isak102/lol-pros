@@ -12,7 +12,7 @@ use yansi::Paint;
 #[derive(Debug, Clone)]
 pub struct Player {
     rank: Option<Rank>,
-    current_game_participant: CurrentGameParticipant,
+    pub current_game_participant: CurrentGameParticipant,
 }
 
 impl<'a> Player {
@@ -27,6 +27,9 @@ impl<'a> Player {
             rank,
             current_game_participant,
         })
+    }
+    pub fn rank(&self) -> &Option<Rank> {
+        &self.rank
     }
 }
 
@@ -60,11 +63,10 @@ impl ProGame {
     /// # Returns
     /// A tuple of vectors with references to each player in the team. Both vectors will have the
     /// size 5
-    pub fn teams(&self) -> (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) {
-        let is_red = |p: &&CurrentGameParticipant| p.team_id == Team::RED;
+    pub fn teams(&self) -> (Vec<&Player>, Vec<&Player>) {
+        let is_red = |p: &&Player| p.current_game_participant.team_id == Team::RED;
 
-        let (blue, red): (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) =
-            self.game_info.participants.iter().partition(is_red);
+        let (blue, red): (Vec<&Player>, Vec<&Player>) = self.players.iter().partition(is_red);
 
         assert_eq!(blue.len(), 5);
         assert_eq!(red.len(), 5);

@@ -2,7 +2,7 @@ use riven::consts::{PlatformRoute, Tier};
 use riven::models::league_v4::LeagueItem;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 use std::ops::Index;
 
 use std::rc::Rc;
@@ -194,6 +194,10 @@ impl ProData {
         for participant in &game_info.participants {
             let p = Player::new(participant.summoner_id.as_str(), participant.clone(), &self)
                 .expect("Couldnt create Player");
+            let rank_string = match p.rank() {
+                Some(r) => r.to_string(),
+                None => "".to_string(),
+            };
             players.push(p);
         }
 
@@ -243,5 +247,18 @@ impl ProData {
 
     pub fn pros_count(&self) -> usize {
         self.pros.len()
+    }
+}
+
+impl Display for Rank {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = match self.tier {
+            Tier::CHALLENGER => "C1",
+            Tier::GRANDMASTER => "GM",
+            Tier::MASTER => "M",
+            _ => panic!("Rank should never be below master"),
+        };
+
+        write!(f, "{} {}", s, self.ranked_stats.league_points)
     }
 }
