@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use crate::pro_data::{Player, ProGame};
 
 use enum_iterator::Sequence;
@@ -187,13 +189,24 @@ lazy_static! {
     static ref ALL_COLUMNS: Vec<Column> = enum_iterator::all::<Column>().collect::<Vec<_>>();
 }
 
-#[derive(Sequence, Eq, PartialEq, Debug, Copy, Clone, strum_macros::Display)]
+#[derive(Sequence, Eq, PartialEq, Debug, Copy, Clone)]
 /// Columns ordered from left to right
 enum Column {
     ProName,
     RankInfo,
     SummonerName,
     ChampionName,
+}
+
+impl Display for Column {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Column::ProName => write!(f, "Pro"),
+            Column::RankInfo => write!(f, "Rank"),
+            Column::SummonerName => write!(f, "Summoner"),
+            Column::ChampionName => write!(f, "Champion"),
+        }
+    }
 }
 
 pub async fn print(pro_game: &ProGame) -> Result<(), ()> {
