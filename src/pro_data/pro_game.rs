@@ -10,8 +10,30 @@ use tokio::task;
 use yansi::Paint;
 
 #[derive(Debug, Clone)]
+pub struct Player {
+    rank: Option<Rank>,
+    current_game_participant: CurrentGameParticipant,
+}
+
+impl<'a> Player {
+    pub(super) fn new(
+        summoner_id: &str,
+        current_game_participant: CurrentGameParticipant,
+        pro_data: &ProData,
+    ) -> Option<Self> {
+        let rank = pro_data.get_rank(summoner_id);
+
+        Some(Self {
+            rank,
+            current_game_participant,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ProGame {
     pub(super) game_info: CurrentGameInfo,
+    pub(super) players: Vec<Player>,
     pub(super) pro_players: Vec<Rc<Pro>>,
 }
 
@@ -49,38 +71,34 @@ impl ProGame {
         (blue, red)
     }
 
-    pub async fn average_lp(&self) -> Result<usize, String> {
+    pub fn average_lp(&self) -> i32 {
         let mut total_lp = 0;
-        let mut results: usize = 0;
-        let mut tasks = vec![];
+        let mut results = 0;
 
-        for participant in &self.game_info.participants {
-            let summoner_id = participant.summoner_id.clone();
-            let handle = task::spawn(get_lp_api(summoner_id));
-            tasks.push(handle);
+        for player in &self.players {
+            total_lp += match &player.rank {
+                Some(r) => r.ranked_stats.league_points,
+                None => continue,
+            };
+            results += 1;
         }
 
-        for handle in tasks {
-            match handle.await {
-                Ok(result) => match result {
-                    Ok(lp) => match lp {
-                        Some(lp) => {
-                            results += 1;
-                            total_lp += lp
-                        }
-                        None => {}
-                    },
-                    Err(e) => return Err(e.to_string()),
-                },
-                Err(e) => return Err(e.to_string()),
-            }
-        }
+        total_lp / results
+    }
 
-        if self.game_info.participants.is_empty() {
-            return Err("No participants in the game".to_string());
-        }
+    pub fn get_player(&self, summoner_id: &str) -> Option<&Player> {
+        self.players
+            .iter()
+            .find(|p| p.current_game_participant.summoner_id == summoner_id)
+    }
 
-        Ok(total_lp / results)
+    pub fn get_lp(&self, summoner_id: &str) -> Option<i32> {
+        let player = self.get_player(summoner_id)?;
+
+        match &player.rank {
+            Some(r) => Some(r.ranked_stats.league_points),
+            None => None,
+        }
     }
 }
 

@@ -36,6 +36,13 @@ struct Team {
     _full_name: String,
 }
 
+pub type RankedStats = LeagueItem;
+#[derive(Debug, Clone)]
+pub struct Rank {
+    pub tier: Tier,
+    pub ranked_stats: RankedStats,
+}
+
 #[derive(Debug)]
 pub struct ProData {
     top_leagues: TopLeagues,
@@ -128,8 +135,12 @@ impl ProData {
     /// `RiotApiError` if getting the league failed
     /// `Ok(Some(lp))` if summoner is above master
     /// `Ok(None)` if summoner isn't ranked or isn't above master
-    pub async fn get_lp(&self, summoner_id: String) -> Option<usize> {
-        self.top_leagues.get_lp(summoner_id.as_str())
+    pub fn get_lp(&self, summoner_id: &str) -> Option<i32> {
+        self.top_leagues.get_lp(summoner_id)
+    }
+
+    pub fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
+        self.top_leagues.get_rank(summoner_id)
     }
 
     // TODO: find way to return Vec<&Pro>
@@ -179,8 +190,15 @@ impl ProData {
         };
 
         let pro_players = self.find_pros_in_game(&game_info);
+        let mut players = Vec::new();
+        for participant in &game_info.participants {
+            let p = Player::new(participant.summoner_id.as_str(), participant.clone(), &self)
+                .expect("Couldnt create Player");
+            players.push(p);
+        }
 
         let game = Rc::new(ProGame {
+            players,
             game_info,
             pro_players: pro_players,
         });

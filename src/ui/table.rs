@@ -158,7 +158,7 @@ pub async fn print(pro_game: &ProGame) -> Result<(), ()> {
     let separator = "—".repeat(width.unwrap_or(120) as usize);
 
     println!("{separator}");
-    eprintln!("{}LP", pro_game.average_lp().await.unwrap());
+    eprintln!("{}LP", pro_game.average_lp());
     TableData::new(pro_game).print();
     println!("{separator}");
 

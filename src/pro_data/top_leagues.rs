@@ -1,6 +1,6 @@
 use crate::api::RIOT_API;
 
-use super::SummonerID;
+use super::{Rank, SummonerID};
 use riven::{
     consts::Tier,
     models::league_v4::{LeagueItem, LeagueList},
@@ -48,12 +48,18 @@ impl TopLeagues {
         Self { players }
     }
 
-    pub fn get_lp(&self, summoner_id: &str) -> Option<usize> {
+    pub(super) fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
         match &self.players.get(summoner_id) {
-            Some(&(ref league_item, _)) => {
-                return Some(league_item.league_points as usize);
-            }
-            None => return None,
+            Some(&(ref league_item, ref tier)) => Some(Rank {
+                tier: tier.clone(),
+                ranked_stats: league_item.clone(),
+            }),
+            None => None,
         }
+    }
+
+    pub fn get_lp(&self, summoner_id: &str) -> Option<i32> {
+        self.get_rank(summoner_id)
+            .map(|rank| rank.ranked_stats.league_points)
     }
 }
