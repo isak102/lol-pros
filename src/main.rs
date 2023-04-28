@@ -81,8 +81,9 @@ async fn main() {
     }
 
     println!(
-        "\nFound {} game(s) with {} pro(s) in total",
+        "\nFound {} game(s) with {} pro(s) in total. {} pro(s) exist in the database.",
         pro_data.games_count(),
-        pro_data.pros_in_game_count()
+        pro_data.pros_in_game_count(),
+        pro_data.pros_count(),
     );
 }
