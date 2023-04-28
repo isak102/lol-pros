@@ -18,8 +18,10 @@ pub struct Args {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Sync pro data
+    #[command(alias = "s")]
     Sync {},
 
     /// Print pro players leaderboard
+    #[command(alias = "l")]
     Leaderboard {},
 }
