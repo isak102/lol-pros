@@ -19,4 +19,7 @@ pub struct Args {
 pub enum Command {
     /// Sync pro data
     Sync {},
+
+    /// Print pro players leaderboard
+    Leaderboard {},
 }

@@ -143,6 +143,22 @@ impl ProData {
         self.top_leagues.get_rank(summoner_id)
     }
 
+    
+    pub fn pro_leaderboard(&self) -> Vec<(Rc<Pro>, Rank)> {
+        let mut result = Vec::new();
+        for pro in self.get_pros() {
+            let rank = match self.get_rank(&pro.summoner_id.as_ref().unwrap()) {
+                Some(r) => r,
+                None => continue,
+            };
+            result.push((pro, rank));
+        }
+
+        result.sort_by_key(|&(_, ref r)| r.ranked_stats.league_points);
+        result.reverse();
+        result
+    }
+
     // TODO: find way to return Vec<&Pro>
     pub fn get_pros(&self) -> Vec<Rc<Pro>> {
         let mut result = Vec::new();

@@ -34,7 +34,7 @@ async fn main() {
         pro_file_path: args.pro_file_path,
     };
 
-    match args.command {
+    match &args.command {
         Some(cmd) => match cmd {
             args::Command::Sync {} => {
                 pro_data::io::sync_summoner_ids(&c)
@@ -46,6 +46,7 @@ async fn main() {
                 eprintln!("Done syncing summoner IDs");
                 process::exit(0);
             }
+            _ => {}
         },
         None => {}
     }
@@ -56,8 +57,17 @@ async fn main() {
         process::exit(1);
     });
 
-    // dbg!(pro_data.top_leagues());
-    //
+    match &args.command {
+        Some(cmd) => match cmd {
+            args::Command::Leaderboard {} => {
+                ui::leaderboard::print(&pro_data);
+                process::exit(0);
+            }
+            _ => {}
+        },
+        None => {}
+    }
+
     let pros = &pro_data.get_pros();
     for pro in pros {
         if pro_data.is_in_game(pro) {
@@ -80,7 +90,7 @@ async fn main() {
                 Some(g) => g,
             },
         };
-        ui::table::print(&game)
+        ui::game::print(&game)
             .await
             .expect("printing should succeed");
     }
