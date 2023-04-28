@@ -7,7 +7,7 @@ use std::panic;
 use std::str;
 use strip_ansi_escapes;
 use tokio::task;
-use yansi::{Paint};
+use yansi::Paint;
 
 #[derive(Debug, Clone)]
 pub struct ProGame {
@@ -49,8 +49,9 @@ impl ProGame {
         (blue, red)
     }
 
-    pub async fn average_lp(&self) -> usize {
+    pub async fn average_lp(&self) -> Result<usize, String> {
         let mut total_lp = 0;
+        let mut results: usize = 0;
         let mut tasks = vec![];
 
         for participant in &self.game_info.participants {
@@ -60,10 +61,26 @@ impl ProGame {
         }
 
         for handle in tasks {
-            total_lp += handle.await.unwrap().unwrap().unwrap();
+            match handle.await {
+                Ok(result) => match result {
+                    Ok(lp) => match lp {
+                        Some(lp) => {
+                            results += 1;
+                            total_lp += lp
+                        }
+                        None => {}
+                    },
+                    Err(e) => return Err(e.to_string()),
+                },
+                Err(e) => return Err(e.to_string()),
+            }
         }
 
-        total_lp / &self.game_info.participants.len()
+        if self.game_info.participants.is_empty() {
+            return Err("No participants in the game".to_string());
+        }
+
+        Ok(total_lp / results)
     }
 }
 
