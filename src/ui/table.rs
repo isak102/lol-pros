@@ -15,7 +15,7 @@ struct TableData {
 impl TableData {
     fn new(pro_game: &ProGame) -> TableData {
         let mut cells: Vec<Vec<CellData>> = Vec::new();
-        let (blue_team, red_team) = pro_game.get_teams();
+        let (blue_team, red_team) = pro_game.teams();
 
         for (blue_participant, red_participant) in red_team.iter().zip(blue_team.iter()) {
             let f = |participant: &CurrentGameParticipant| {

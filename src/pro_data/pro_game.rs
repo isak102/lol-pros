@@ -8,12 +8,56 @@ use std::str;
 use strip_ansi_escapes;
 use yansi::{Color, Paint};
 
-// FIXME: Move the functions in this file
-
 #[derive(Debug, Clone)]
 pub struct ProGame {
     pub(super) game_info: CurrentGameInfo,
     pub(super) pro_players: Vec<Rc<Pro>>,
+}
+
+impl ProGame {
+    /// Get pro by summoner_id
+    /// # Parameters
+    /// `summoner_id` - Summoner ID of the pro
+    /// # Returns
+    /// - `Some(p)` if pro was found
+    /// - `None` if pro was not found
+    pub fn get_pro(&self, summoner_id: &str) -> Option<&Pro> {
+        let p = self
+            .pro_players
+            .iter()
+            .find(|pro| pro.summoner_id.as_deref() == Some(summoner_id));
+
+        match p {
+            Some(p) => Some(p.as_ref()),
+            None => None,
+        }
+    }
+
+    /// Get the teams in the game
+    /// # Returns
+    /// A tuple of vectors with references to each player in the team. Both vectors will have the
+    /// size 5
+    pub fn teams(&self) -> (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) {
+        let is_red = |p: &&CurrentGameParticipant| p.team_id == Team::RED;
+
+        let (blue, red): (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) =
+            self.game_info.participants.iter().partition(is_red);
+
+        assert_eq!(blue.len(), 5);
+        assert_eq!(red.len(), 5);
+        (blue, red)
+    }
+
+}
+
+// FIXME: Move the functions in this file somewhere else
+
+// FIXME: game time is very inaccurate, use game_start_time to calculate instead
+fn game_length_to_string(game_length: i64) -> String {
+    let minutes = game_length / 60;
+    let seconds = game_length % 60;
+
+    format!("{:02}:{:02}", minutes, seconds)
 }
 
 fn ansicode_length(str: &str) -> usize {
@@ -22,14 +66,6 @@ fn ansicode_length(str: &str) -> usize {
         .to_string();
 
     str.len() - stripped_string.len()
-}
-
-// FIXME: game time is very inaccurate, use game_start_time to calculate instead
-fn _game_length_to_string(game_length: i64) -> String {
-    let minutes = game_length / 60;
-    let seconds = game_length % 60;
-
-    format!("{:02}:{:02}", minutes, seconds)
 }
 
 fn start_time_to_string(start_time: i64) -> String {
@@ -110,33 +146,4 @@ fn banned_champions_to_string(banned_champions: &Vec<BannedChampion>) -> (String
         remove_suffix(&mut blue_string),
         remove_suffix(&mut red_string),
     )
-}
-
-impl ProGame {
-    pub fn get_pro(&self, summoner_id: &str) -> Option<&Pro> {
-        let p = self
-            .pro_players
-            .iter()
-            .find(|pro| pro.summoner_id.as_deref() == Some(summoner_id));
-
-        match p {
-            Some(p) => Some(p.as_ref()),
-            None => None,
-        }
-    }
-
-    /// Get the teams in the game
-    /// # Returns
-    /// A tuple of vectors with references to each player in the team. Both vectors will have the
-    /// size 5
-    pub fn get_teams(&self) -> (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) {
-        let is_red = |p: &&CurrentGameParticipant| p.team_id == Team::RED;
-
-        let (blue, red): (Vec<&CurrentGameParticipant>, Vec<&CurrentGameParticipant>) =
-            self.game_info.participants.iter().partition(is_red);
-
-        assert_eq!(blue.len(), 5);
-        assert_eq!(red.len(), 5);
-        (blue, red)
-    }
 }
