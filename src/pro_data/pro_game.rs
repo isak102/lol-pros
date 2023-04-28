@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::*;
 use chrono::{DateTime, Local, TimeZone};
 use riven::consts::Team;
@@ -6,97 +8,12 @@ use std::str;
 use strip_ansi_escapes;
 use yansi::{Color, Paint};
 
+// FIXME: Move the functions in this file
+
 #[derive(Debug, Clone)]
 pub struct ProGame {
     pub(super) game_info: CurrentGameInfo,
     pub(super) pro_players: Vec<Rc<Pro>>,
-}
-
-// TODO: move this to ui::raw
-impl std::fmt::Display for ProGame {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut blue_team: Vec<&CurrentGameParticipant> = Vec::new();
-        let mut red_team: Vec<&CurrentGameParticipant> = Vec::new();
-
-        for participant in &self.game_info.participants {
-            match &participant.team_id {
-                riven::consts::Team::BLUE => blue_team.push(&participant),
-                riven::consts::Team::RED => red_team.push(&participant),
-                _ => panic!("Team should be either BLUE or RED."),
-            }
-        }
-
-        let mut output = String::new();
-
-        // FIXME: add queue type
-        writeln!(
-            output,
-            "Game start time: {}\n", // TODO: print how long ago the start time was
-            start_time_to_string(self.game_info.game_start_time)
-        )
-        .expect("Writing to this buffer should never fail");
-
-        for i in 0..5 {
-            let blue_participant: &CurrentGameParticipant = blue_team.index(i);
-            let red_participant: &CurrentGameParticipant = red_team.index(i);
-
-            let extract_info = |player: &CurrentGameParticipant| {
-                let pro = self.get_pro(&player.summoner_id);
-                let is_pro = pro.is_some();
-                let mut pro_name = String::new();
-
-                if is_pro {
-                    let pro = pro.expect("This should never be None");
-                    write!(pro_name, "{} {}", pro.team.short_name, pro.player_name)
-                        .expect("Writing to this buffer should never fail");
-                }
-
-                (is_pro, pro_name)
-            };
-
-            let (blue_is_pro, blue_pro_name) = extract_info(blue_participant);
-            let (red_is_pro, red_pro_name) = extract_info(red_participant);
-
-            let blue_player = Paint::wrapping(participant_to_string(
-                blue_participant,
-                (blue_is_pro, &blue_pro_name),
-            ))
-            .fg(Color::Blue)
-            .to_string();
-
-            let red_player = Paint::wrapping(participant_to_string(
-                red_participant,
-                (red_is_pro, &red_pro_name),
-            ))
-            .fg(Color::Red)
-            .to_string();
-
-            write!(
-                output,
-                "{0: <width$} {1}",
-                blue_player,
-                red_player,
-                width = 40 + ansicode_length(&blue_player)
-            )?;
-
-            /* dont append newline if we are on the last line */
-            if i != 4 {
-                output.push('\n');
-            }
-        }
-
-        let (blue_bans, red_bans) = banned_champions_to_string(&self.game_info.banned_champions);
-        write!(
-            output,
-            "\n\nBlue bans: {}\nRed bans: {}",
-            Color::Blue.paint(blue_bans),
-            Color::Red.paint(red_bans)
-        )
-        .expect("Writing to this buffer should never fail");
-
-        write!(f, "{}", output)?;
-        Ok(())
-    }
 }
 
 fn ansicode_length(str: &str) -> usize {
