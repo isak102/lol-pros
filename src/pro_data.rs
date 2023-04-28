@@ -1,4 +1,5 @@
-use riven::consts::PlatformRoute;
+use riven::consts::{PlatformRoute, Tier};
+use riven::models::league_v4::LeagueItem;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Write;
@@ -10,11 +11,13 @@ use riven::models::spectator_v4::*;
 use riven::RiotApiError;
 
 pub use self::pro_game::*;
+pub use self::top_leagues::*;
 use super::Config;
 use crate::api::RIOT_API;
 
 pub mod io;
 mod pro_game;
+mod top_leagues;
 
 pub type SummonerID = String;
 pub type SummonerName = String;
@@ -35,6 +38,7 @@ struct Team {
 
 #[derive(Debug)]
 pub struct ProData {
+    top_leagues: TopLeagues,
     pros: HashMap<SummonerID, Rc<Pro>>,
     games: Vec<Rc<ProGame>>,
     pros_in_game: HashMap<SummonerID, Rc<ProGame>>,
@@ -106,10 +110,15 @@ impl ProData {
     pub async fn load(config: &Config) -> Result<ProData, Box<dyn Error>> {
         let pros = io::load_pros(config).await?;
         Ok(ProData {
+            top_leagues: TopLeagues::get().await,
             pros: pros,
             games: Vec::new(),
             pros_in_game: HashMap::new(),
         })
+    }
+
+    pub fn top_leagues(&self) -> &TopLeagues {
+        &self.top_leagues
     }
 
     // TODO: find way to return Vec<&Pro>
