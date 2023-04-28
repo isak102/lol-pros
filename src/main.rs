@@ -7,7 +7,8 @@ use std::process;
 
 use clap::Parser;
 use pro_data::*;
-use riven::reqwest::StatusCode;
+use riven::{models::league_v4::LeagueList, reqwest::StatusCode};
+use tokio::join;
 use yansi::Paint;
 
 pub struct Config {
@@ -55,6 +56,8 @@ async fn main() {
         process::exit(1);
     });
 
+    // dbg!(pro_data.top_leagues());
+    //
     let pros = &pro_data.get_pros();
     for pro in pros {
         if pro_data.is_in_game(pro) {

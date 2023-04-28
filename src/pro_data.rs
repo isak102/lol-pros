@@ -51,7 +51,7 @@ pub struct ProData {
 /// `RiotApiError` if getting the league failed
 /// `Ok(Some(lp))` if summoner is above master
 /// `Ok(None)` if summoner isn't ranked or isn't above master
-pub async fn get_lp(summoner_id: String) -> Result<Option<usize>, RiotApiError> {
+pub async fn get_lp_api(summoner_id: String) -> Result<Option<usize>, RiotApiError> {
     let league_entries = RIOT_API
         .league_v4()
         .get_league_entries_for_summoner(PlatformRoute::EUW1, summoner_id.as_str())
@@ -119,6 +119,17 @@ impl ProData {
 
     pub fn top_leagues(&self) -> &TopLeagues {
         &self.top_leagues
+    }
+
+    /// Gets the LP for a summoner (in master and above)
+    /// # Parameter
+    /// `summoner_id` - the summoner ID of the summoner
+    /// # Returns
+    /// `RiotApiError` if getting the league failed
+    /// `Ok(Some(lp))` if summoner is above master
+    /// `Ok(None)` if summoner isn't ranked or isn't above master
+    pub async fn get_lp(&self, summoner_id: String) -> Option<usize> {
+        self.top_leagues.get_lp(summoner_id.as_str())
     }
 
     // TODO: find way to return Vec<&Pro>

@@ -6,6 +6,7 @@ use riven::{
     models::league_v4::{LeagueItem, LeagueList},
 };
 use std::collections::HashMap;
+use std::process::exit;
 use tokio::join;
 
 #[derive(Debug)]
@@ -33,6 +34,7 @@ impl TopLeagues {
     }
 
     pub async fn get() -> Self {
+        eprintln!("Getting top leagues...");
         let leagues = Self::get_leagues().await;
         let mut players: HashMap<SummonerID, (LeagueItem, Tier)> = HashMap::new();
         for league_list in leagues {
@@ -40,7 +42,18 @@ impl TopLeagues {
                 players.insert(entry.summoner_id.clone(), (entry, league_list.tier));
             }
         }
+        // dbg!(&players);
 
+        eprintln!("Done.");
         Self { players }
+    }
+
+    pub fn get_lp(&self, summoner_id: &str) -> Option<usize> {
+        match &self.players.get(summoner_id) {
+            Some(&(ref league_item, _)) => {
+                return Some(league_item.league_points as usize);
+            }
+            None => return None,
+        }
     }
 }

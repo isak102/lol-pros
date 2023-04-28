@@ -56,7 +56,7 @@ impl ProGame {
 
         for participant in &self.game_info.participants {
             let summoner_id = participant.summoner_id.clone();
-            let handle = task::spawn(get_lp(summoner_id));
+            let handle = task::spawn(get_lp_api(summoner_id));
             tasks.push(handle);
         }
 
