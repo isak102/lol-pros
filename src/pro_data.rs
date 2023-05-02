@@ -117,7 +117,7 @@ impl ProData {
     pub async fn load(config: &Config) -> Result<ProData, Box<dyn Error>> {
         let pros = io::load_pros(config).await?;
         Ok(ProData {
-            top_leagues: TopLeagues::get().await,
+            top_leagues: TopLeagues::get().await?,
             pros: pros,
             games: Vec::new(),
             pros_in_game: HashMap::new(),
@@ -143,7 +143,6 @@ impl ProData {
         self.top_leagues.get_rank(summoner_id)
     }
 
-    
     pub fn pro_leaderboard(&self) -> Vec<(Rc<Pro>, Rank)> {
         let mut result = Vec::new();
         for pro in self.get_pros() {

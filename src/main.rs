@@ -7,8 +7,7 @@ use std::process;
 
 use clap::Parser;
 use pro_data::*;
-use riven::{models::league_v4::LeagueList, reqwest::StatusCode};
-use tokio::join;
+use riven::reqwest::StatusCode;
 use yansi::Paint;
 
 pub struct Config {
@@ -52,8 +51,16 @@ async fn main() {
     }
 
     eprintln!("Getting pros...");
-    let mut pro_data = ProData::load(&c).await.unwrap_or_else(|err| {
-        eprintln!("Error when loading pro data: {err}");
+    let mut pro_data = ProData::load(&c).await.unwrap_or_else(|e| {
+        if let Some(e) = e.downcast_ref::<riven::RiotApiError>() {
+            if e.status_code() == Some(StatusCode::FORBIDDEN) {
+                eprintln!("ERROR: 403 received, probably due to bad API key");
+            } else {
+                eprintln!("API error when loading pro data: {e}");
+            }
+        } else {
+            eprintln!("Error when loading pro data: {e}");
+        }
         process::exit(1);
     });
 

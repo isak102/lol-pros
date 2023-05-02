@@ -4,9 +4,9 @@ use super::{Rank, SummonerID};
 use riven::{
     consts::Tier,
     models::league_v4::{LeagueItem, LeagueList},
+    RiotApiError,
 };
 use std::collections::HashMap;
-use std::process::exit;
 use tokio::join;
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct TopLeagues {
     pub players: HashMap<SummonerID, (LeagueItem, Tier)>,
 }
 impl TopLeagues {
-    async fn get_leagues() -> Vec<LeagueList> {
+    async fn get_leagues() -> Result<Vec<LeagueList>, RiotApiError> {
         let (master, grandmaster, challenger) = join!(
             RIOT_API.league_v4().get_master_league(
                 riven::consts::PlatformRoute::EUW1,
@@ -30,13 +30,12 @@ impl TopLeagues {
             ),
         );
 
-        // FIXME: fix these unwraps
-        vec![master.unwrap(), grandmaster.unwrap(), challenger.unwrap()]
+        Ok(vec![master?, grandmaster?, challenger?])
     }
 
-    pub async fn get() -> Self {
+    pub async fn get() -> Result<Self, RiotApiError> {
         eprintln!("Getting top leagues...");
-        let leagues = Self::get_leagues().await;
+        let leagues = Self::get_leagues().await?;
         let mut players: HashMap<SummonerID, (LeagueItem, Tier)> = HashMap::new();
         for league_list in leagues {
             for entry in league_list.entries {
@@ -46,7 +45,7 @@ impl TopLeagues {
         // dbg!(&players);
 
         eprintln!("Done.");
-        Self { players }
+        Ok(Self { players })
     }
 
     pub(super) fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
