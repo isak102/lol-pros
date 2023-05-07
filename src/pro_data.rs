@@ -50,6 +50,17 @@ pub struct ProData {
     pros_in_game: HashMap<SummonerID, Rc<ProGame>>,
 }
 
+impl RankedStats {
+    pub fn winrate(&self) -> f32 {
+        (self.ranked_data.wins as f32 / (self.ranked_data.wins + self.ranked_data.losses) as f32)
+            * 100 as f32
+    }
+
+    pub fn games_played(&self) -> u32 {
+        self.ranked_data.wins as u32 + self.ranked_data.losses as u32
+    }
+}
+
 impl Pro {
     fn new(player_name: String, team: Team, summoner_name: String, summoner_id_str: String) -> Pro {
         let mut summoner_id = None;
@@ -231,13 +242,20 @@ impl ProData {
 
 impl Display for RankedStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let s = match self.tier {
+        let tier_str = match self.tier {
             Tier::CHALLENGER => "C1",
             Tier::GRANDMASTER => "GM",
             Tier::MASTER => "M",
             _ => panic!("Rank should never be below master"),
         };
 
-        write!(f, "{} {}", s, self.ranked_data.league_points)
+        write!(
+            f,
+            "{} {}LP {}gp {:.1}%",
+            tier_str,
+            self.ranked_data.league_points,
+            self.games_played(),
+            self.winrate()
+        )
     }
 }
