@@ -31,6 +31,13 @@ impl<'a> Player {
     pub fn ranked_stats(&self) -> &Option<RankedStats> {
         &self.ranked_stats
     }
+
+    pub fn get_lp(&self) -> Option<i32> {
+        match &self.ranked_stats {
+            Some(r) => Some(r.ranked_data.league_points),
+            None => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -92,15 +99,6 @@ impl ProGame {
         self.players
             .iter()
             .find(|p| p.current_game_participant.summoner_id == summoner_id)
-    }
-
-    pub fn get_lp(&self, summoner_id: &str) -> Option<i32> {
-        let player = self.get_player(summoner_id)?;
-
-        match &player.ranked_stats {
-            Some(r) => Some(r.ranked_data.league_points),
-            None => None,
-        }
     }
 }
 

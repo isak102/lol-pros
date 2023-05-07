@@ -50,37 +50,6 @@ pub struct ProData {
     pros_in_game: HashMap<SummonerID, Rc<ProGame>>,
 }
 
-/// Gets the LP for a summoner (in master and above)
-/// # Parameter
-/// `summoner_id` - the summoner ID of the summoner
-/// # Returns
-/// `RiotApiError` if getting the league failed
-/// `Ok(Some(lp))` if summoner is above master
-/// `Ok(None)` if summoner isn't ranked or isn't above master
-pub async fn get_lp_api(summoner_id: String) -> Result<Option<usize>, RiotApiError> {
-    let league_entries = RIOT_API
-        .league_v4()
-        .get_league_entries_for_summoner(PlatformRoute::EUW1, summoner_id.as_str())
-        .await?;
-
-    let league_entry = league_entries
-        .iter()
-        .find(|e| e.queue_type == riven::consts::QueueType::RANKED_SOLO_5x5);
-    let league_entry = {
-        match league_entry {
-            Some(e) => e,
-            None => return Ok(None),
-        }
-    };
-
-    match league_entry.tier.unwrap() {
-        riven::consts::Tier::CHALLENGER
-        | riven::consts::Tier::GRANDMASTER
-        | riven::consts::Tier::MASTER => return Ok(Some(league_entry.league_points as usize)),
-        _ => return Ok(None),
-    }
-}
-
 impl Pro {
     fn new(player_name: String, team: Team, summoner_name: String, summoner_id_str: String) -> Pro {
         let mut summoner_id = None;
@@ -121,10 +90,6 @@ impl ProData {
             games: Vec::new(),
             pros_in_game: HashMap::new(),
         })
-    }
-
-    pub fn top_leagues(&self) -> &TopLeagues {
-        &self.top_leagues
     }
 
     /// Gets the LP for a summoner (in master and above)
