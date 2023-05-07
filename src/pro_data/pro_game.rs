@@ -6,12 +6,11 @@ use riven::consts::Team;
 use std::panic;
 use std::str;
 use strip_ansi_escapes;
-use tokio::task;
 use yansi::Paint;
 
 #[derive(Debug, Clone)]
 pub struct Player {
-    rank: Option<Rank>,
+    ranked_stats: Option<RankedStats>,
     pub current_game_participant: CurrentGameParticipant,
 }
 
@@ -21,15 +20,16 @@ impl<'a> Player {
         current_game_participant: CurrentGameParticipant,
         pro_data: &ProData,
     ) -> Option<Self> {
-        let rank = pro_data.get_rank(summoner_id);
+        let ranked_stats = pro_data.ranked_stats(summoner_id);
 
         Some(Self {
-            rank,
+            ranked_stats,
             current_game_participant,
         })
     }
-    pub fn rank(&self) -> &Option<Rank> {
-        &self.rank
+
+    pub fn ranked_stats(&self) -> &Option<RankedStats> {
+        &self.ranked_stats
     }
 }
 
@@ -78,8 +78,8 @@ impl ProGame {
         let mut results = 0;
 
         for player in &self.players {
-            total_lp += match &player.rank {
-                Some(r) => r.ranked_stats.league_points,
+            total_lp += match &player.ranked_stats {
+                Some(r) => r.ranked_data.league_points,
                 None => continue,
             };
             results += 1;
@@ -97,8 +97,8 @@ impl ProGame {
     pub fn get_lp(&self, summoner_id: &str) -> Option<i32> {
         let player = self.get_player(summoner_id)?;
 
-        match &player.rank {
-            Some(r) => Some(r.ranked_stats.league_points),
+        match &player.ranked_stats {
+            Some(r) => Some(r.ranked_data.league_points),
             None => None,
         }
     }

@@ -3,7 +3,6 @@ use riven::models::league_v4::LeagueItem;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Write};
-use std::ops::Index;
 
 use std::rc::Rc;
 
@@ -36,11 +35,11 @@ struct Team {
     _full_name: String,
 }
 
-pub type RankedStats = LeagueItem;
+pub type RankedData = LeagueItem;
 #[derive(Debug, Clone)]
-pub struct Rank {
+pub struct RankedStats {
     pub tier: Tier,
-    pub ranked_stats: RankedStats,
+    pub ranked_data: RankedData,
 }
 
 #[derive(Debug)]
@@ -139,21 +138,21 @@ impl ProData {
         self.top_leagues.get_lp(summoner_id)
     }
 
-    pub fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
+    pub fn ranked_stats(&self, summoner_id: &str) -> Option<RankedStats> {
         self.top_leagues.get_rank(summoner_id)
     }
 
-    pub fn pro_leaderboard(&self) -> Vec<(Rc<Pro>, Rank)> {
+    pub fn pro_leaderboard(&self) -> Vec<(Rc<Pro>, RankedStats)> {
         let mut result = Vec::new();
         for pro in self.get_pros() {
-            let rank = match self.get_rank(&pro.summoner_id.as_ref().unwrap()) {
+            let rank = match self.ranked_stats(&pro.summoner_id.as_ref().unwrap()) {
                 Some(r) => r,
                 None => continue,
             };
             result.push((pro, rank));
         }
 
-        result.sort_by_key(|&(_, ref r)| r.ranked_stats.league_points);
+        result.sort_by_key(|&(_, ref r)| r.ranked_data.league_points);
         result.reverse();
         result
     }
@@ -209,7 +208,7 @@ impl ProData {
         for participant in &game_info.participants {
             let p = Player::new(participant.summoner_id.as_str(), participant.clone(), &self)
                 .expect("Couldnt create Player");
-            let rank_string = match p.rank() {
+            let rank_string = match p.ranked_stats() {
                 Some(r) => r.to_string(),
                 None => "".to_string(),
             };
@@ -265,7 +264,7 @@ impl ProData {
     }
 }
 
-impl Display for Rank {
+impl Display for RankedStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let s = match self.tier {
             Tier::CHALLENGER => "C1",
@@ -274,6 +273,6 @@ impl Display for Rank {
             _ => panic!("Rank should never be below master"),
         };
 
-        write!(f, "{} {}", s, self.ranked_stats.league_points)
+        write!(f, "{} {}", s, self.ranked_data.league_points)
     }
 }

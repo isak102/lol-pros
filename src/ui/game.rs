@@ -38,7 +38,7 @@ impl TableData {
                             });
                         }
                         Column::RankInfo => {
-                            let rank_str = match player.rank() {
+                            let rank_str = match player.ranked_stats() {
                                 Some(rank) => rank.to_string(),
                                 None => "-".to_string(),
                             };
