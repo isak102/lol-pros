@@ -36,19 +36,20 @@ impl TopLeagues {
     pub async fn get() -> Result<Self, RiotApiError> {
         eprintln!("Getting top leagues...");
         let leagues = Self::get_leagues().await?;
-        let mut players: HashMap<SummonerID, (LeagueItem, Tier)> = HashMap::new();
-        for league_list in leagues {
-            for entry in league_list.entries {
-                players.insert(entry.summoner_id.clone(), (entry, league_list.tier));
+
+        let mut players: HashMap<SummonerID, (LeagueItem, Tier)> = HashMap::with_capacity(5000);
+
+        for league in leagues {
+            for entry in league.entries {
+                players.insert(entry.summoner_id.clone(), (entry, league.tier));
             }
         }
-        // dbg!(&players);
 
         eprintln!("Done.");
         Ok(Self { players })
     }
 
-    pub(super) fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
+    pub fn get_rank(&self, summoner_id: &str) -> Option<Rank> {
         match &self.players.get(summoner_id) {
             Some(&(ref league_item, ref tier)) => Some(Rank {
                 tier: tier.clone(),
