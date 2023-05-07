@@ -168,8 +168,6 @@ impl ProData {
             return Ok(Some(Rc::clone(&game)));
         }
 
-        // FIXME: filter out all games that are not ranked games
-
         let game_info = match RIOT_API
             .spectator_v4()
             .get_current_game_info_by_summoner(PlatformRoute::EUW1, summoner_id)
@@ -179,15 +177,18 @@ impl ProData {
             None => return Ok(None),
         };
 
+        /* Return none if game is not ranked game */
+        if let Some(q) = game_info.game_queue_config_id {
+            if q != riven::consts::Queue::SUMMONERS_RIFT_5V5_RANKED_SOLO {
+                return Ok(None);
+            }
+        }
+
         let pro_players = self.find_pros_in_game(&game_info);
         let mut players = Vec::new();
         for participant in &game_info.participants {
             let p = Player::new(participant.summoner_id.as_str(), participant.clone(), &self)
                 .expect("Couldnt create Player");
-            let rank_string = match p.ranked_stats() {
-                Some(r) => r.to_string(),
-                None => "".to_string(),
-            };
             players.push(p);
         }
 
